@@ -81,3 +81,33 @@ func (r *HargaRepository) Get(ctx context.Context) (domain.HargaConfig, error) {
 	cfg.UpdatedAt = doc.UpdatedAt
 	return cfg, nil
 }
+
+// Update replaces the full config/harga doc, matching saveHarga()'s setDoc
+// (reference/udang-dashboard/index.html lines ~5124-5148). UpdatedAt on cfg
+// is ignored — always set to the current time server-side.
+func (r *HargaRepository) Update(ctx context.Context, cfg domain.HargaConfig) (domain.HargaConfig, error) {
+	var doc hargaDoc
+	doc.Udang.PerKg = cfg.Udang.PerKg
+	doc.Udang.SetengahKg = cfg.Udang.SetengahKg
+	doc.Udang.JasaKupasPerKg = cfg.Udang.JasaKupasPerKg
+	doc.Udang.KupasSetengahSurcharge = cfg.Udang.KupasSetengahSurcharge
+	doc.Cumi.PerKg = cfg.Cumi.PerKg
+	doc.Cumi.SetengahKg = cfg.Cumi.SetengahKg
+	doc.Kembung.PerKg = cfg.Kembung.PerKg
+	doc.Kembung.SetengahKg = cfg.Kembung.SetengahKg
+	doc.Kembung.JasaBersihPerKg = cfg.Kembung.JasaBersihPerKg
+	doc.TeriNasi.PricePerPack = cfg.TeriNasi.PricePerPack
+	doc.TeriNasi.KgPerPack = cfg.TeriNasi.KgPerPack
+	doc.TeriNasi.HargaSatuKg = cfg.TeriNasi.HargaSatuKg
+	doc.Ongkir.Normal = cfg.Ongkir.Normal
+	doc.Ongkir.BogorTangerang = cfg.Ongkir.BogorTangerang
+	doc.Ongkir.MinKgBogorTangerang = cfg.Ongkir.MinKgBogorTangerang
+	doc.Ongkir.MinKgDefault = cfg.Ongkir.MinKgDefault
+	doc.UpdatedAt = time.Now().UTC()
+
+	if _, err := r.client.Collection(CollectionConfig).Doc(ConfigHargaDocID).Set(ctx, doc); err != nil {
+		return domain.HargaConfig{}, fmt.Errorf("firestore: update config/harga: %w", err)
+	}
+	cfg.UpdatedAt = doc.UpdatedAt
+	return cfg, nil
+}

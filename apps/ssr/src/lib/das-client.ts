@@ -11,6 +11,14 @@ import {
   HargaServiceClient,
   type GetHargaResponse,
   type ValidatePromoResponse,
+  type UpdateHargaRequest,
+  type UpdateHargaResponse,
+  type ListPromosResponse,
+  type CreatePromoRequest,
+  type CreatePromoResponse,
+  type UpdatePromoRequest,
+  type UpdatePromoResponse,
+  type SetPromoActiveResponse,
 } from "@udangujang/proto/src/gen/udangujang/harga/v1/harga";
 import {
   PesananServiceClient,
@@ -84,6 +92,90 @@ export function validatePromo(input: ValidatePromoInput): Promise<ValidatePromoR
         resolve(resp);
       },
     );
+  });
+}
+
+export function updateHarga(req: UpdateHargaRequest): Promise<UpdateHargaResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.updateHarga(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function listPromos(): Promise<ListPromosResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.listPromos({}, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function createPromo(req: CreatePromoRequest): Promise<CreatePromoResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.createPromo(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function updatePromo(req: UpdatePromoRequest): Promise<UpdatePromoResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.updatePromo(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function deletePromo(code: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.deletePromo({ code }, (err) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export function setPromoActive(code: string, active: boolean): Promise<SetPromoActiveResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getHargaClient();
+    client.setPromoActive({ code, active }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
   });
 }
 

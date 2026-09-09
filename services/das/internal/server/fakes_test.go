@@ -210,3 +210,60 @@ func (f *fakePromoRepo) GetPromo(_ context.Context, code string) (domain.Promo, 
 	}
 	return p, nil
 }
+
+func (f *fakePromoRepo) ListPromos(_ context.Context) ([]domain.Promo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]domain.Promo, 0, len(f.byCode))
+	for _, p := range f.byCode {
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+func (f *fakePromoRepo) CreatePromo(_ context.Context, p domain.Promo) (domain.Promo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	docID := strings.ToUpper(p.Code)
+	if _, ok := f.byCode[docID]; ok {
+		return domain.Promo{}, domain.ErrDuplicateCode
+	}
+	p.Code = docID
+	p.UsedCount = 0
+	f.byCode[docID] = p
+	return p, nil
+}
+
+func (f *fakePromoRepo) UpdatePromo(_ context.Context, p domain.Promo) (domain.Promo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	docID := strings.ToUpper(p.Code)
+	existing, ok := f.byCode[docID]
+	if !ok {
+		return domain.Promo{}, domain.ErrNotFound
+	}
+	p.Code = docID
+	p.UsedCount = existing.UsedCount
+	f.byCode[docID] = p
+	return p, nil
+}
+
+func (f *fakePromoRepo) DeletePromo(_ context.Context, code string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.byCode, strings.ToUpper(code))
+	return nil
+}
+
+func (f *fakePromoRepo) SetPromoActive(_ context.Context, code string, active bool) (domain.Promo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	docID := strings.ToUpper(code)
+	p, ok := f.byCode[docID]
+	if !ok {
+		return domain.Promo{}, domain.ErrNotFound
+	}
+	p.Active = active
+	f.byCode[docID] = p
+	return p, nil
+}

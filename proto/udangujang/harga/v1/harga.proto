@@ -2,17 +2,26 @@ syntax = "proto3";
 
 package udangujang.harga.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "udangujang/das/gen/udangujang/harga/v1;hargav1";
 
-// HargaService exposes read-only pricing config and promo validation to
-// callers (SSR public form, admin dashboard) — see docs/architecture.md: SSR
-// never touches Firestore directly, so config/harga and promo_codes (DAS
-// storage details) are surfaced here through a storage-agnostic contract
-// instead. Both RPCs are read-only; CreatePesanan (pesanan.proto) remains
-// the only write path.
+// HargaService exposes pricing config and promo management to callers (SSR
+// public form, admin dashboard) — see docs/architecture.md: SSR never
+// touches Firestore directly, so config/harga and promo_codes (DAS storage
+// details) are surfaced here through a storage-agnostic contract instead.
+// GetHarga/ValidatePromo/ListPromos are read-only; UpdateHarga and the
+// Promo write RPCs are the admin dashboard's harga/promo editors (UDMC-5) —
+// CreatePesanan (pesanan.proto) remains the only order write path.
 service HargaService {
   rpc GetHarga(GetHargaRequest) returns (GetHargaResponse);
+  rpc UpdateHarga(UpdateHargaRequest) returns (UpdateHargaResponse);
   rpc ValidatePromo(ValidatePromoRequest) returns (ValidatePromoResponse);
+  rpc ListPromos(ListPromosRequest) returns (ListPromosResponse);
+  rpc CreatePromo(CreatePromoRequest) returns (CreatePromoResponse);
+  rpc UpdatePromo(UpdatePromoRequest) returns (UpdatePromoResponse);
+  rpc DeletePromo(DeletePromoRequest) returns (DeletePromoResponse);
+  rpc SetPromoActive(SetPromoActiveRequest) returns (SetPromoActiveResponse);
 }
 
 // HargaUdang/HargaCumi/HargaKembung/HargaTeriNasi/HargaOngkir mirror the
@@ -57,11 +66,26 @@ message HargaConfig {
   HargaKembung kembung = 3;
   HargaTeriNasi teri_nasi = 4;
   HargaOngkir ongkir = 5;
+  // updated_at is read-only — ignored on UpdateHarga requests, always set
+  // server-side (mirrors saveHarga()'s Timestamp.now(), reference/
+  // udang-dashboard/index.html line ~5140).
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 message GetHargaRequest {}
 
 message GetHargaResponse {
+  HargaConfig harga = 1;
+}
+
+// UpdateHarga always replaces the full config/harga doc (matches
+// saveHarga()'s setDoc — reference/udang-dashboard/index.html lines
+// ~5124-5148). updated_at on the request is ignored.
+message UpdateHargaRequest {
+  HargaConfig harga = 1;
+}
+
+message UpdateHargaResponse {
   HargaConfig harga = 1;
 }
 
@@ -97,4 +121,73 @@ message ValidatePromoResponse {
   double min_subtotal = 9;
   int64 max_uses = 10;
   int64 used_count = 11;
+}
+
+// Promo mirrors a promo_codes doc (see docs/migration-context.md § shared/
+// promo_codes). code is the doc ID (uppercase); used_count is read-only —
+// callers cannot set it through Create/UpdatePromo, it only ever changes
+// via the (separate, not-yet-built) payment-confirmation flow that
+// increments it.
+message Promo {
+  string code = 1;
+  string type = 2;
+  double value = 3;
+  bool active = 4;
+  google.protobuf.Timestamp expires = 5;
+  double min_kg = 6;
+  double max_kg = 7;
+  double min_kg_utuh = 8;
+  double min_kg_kupas = 9;
+  double min_subtotal = 10;
+  int64 max_uses = 11;
+  int64 used_count = 12;
+}
+
+message ListPromosRequest {}
+
+message ListPromosResponse {
+  repeated Promo promos = 1;
+}
+
+// CreatePromo fails with ALREADY_EXISTS if code is already taken — see
+// savePromo()'s overwrite-with-confirm UX (reference/udang-dashboard/
+// index.html lines ~4964-4969), ported here as a hard reject; the admin UI
+// decides whether to re-submit via UpdatePromo instead. used_count on the
+// request is ignored — new promos always start at 0.
+message CreatePromoRequest {
+  Promo promo = 1;
+}
+
+message CreatePromoResponse {
+  Promo promo = 1;
+}
+
+// UpdatePromo requires promo.code to already exist (NOT_FOUND otherwise).
+// used_count on the request is ignored — the stored value is preserved
+// (mirrors savePromo()'s isEdit branch, which reads back the existing
+// usedCount before writing).
+message UpdatePromoRequest {
+  Promo promo = 1;
+}
+
+message UpdatePromoResponse {
+  Promo promo = 1;
+}
+
+message DeletePromoRequest {
+  string code = 1;
+}
+
+message DeletePromoResponse {}
+
+// SetPromoActive flips only the active flag (mirrors togglePromoActive() —
+// reference/udang-dashboard/index.html lines ~5015-5023) without touching
+// any other field.
+message SetPromoActiveRequest {
+  string code = 1;
+  bool active = 2;
+}
+
+message SetPromoActiveResponse {
+  Promo promo = 1;
 }

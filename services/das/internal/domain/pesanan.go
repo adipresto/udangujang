@@ -94,11 +94,20 @@ type Promo struct {
 	UsedCount   int
 }
 
-// PromoRepository looks up promo_codes by code. GetPromo returns
-// ErrNotFound when the code doesn't exist — callers decide how to surface
-// that (e.g. as an invalid-argument to the RPC caller).
+// PromoRepository looks up and manages promo_codes. GetPromo/UpdatePromo/
+// DeletePromo/SetPromoActive return ErrNotFound when the code doesn't
+// exist; CreatePromo returns ErrDuplicateCode when it already does. Write
+// methods never let the caller set UsedCount — CreatePromo always starts
+// it at 0, the others preserve whatever is already stored (see
+// docs/migration-context.md § shared/promo_codes: usedCount only changes
+// via the payment-confirmation flow, not this admin editor).
 type PromoRepository interface {
 	GetPromo(ctx context.Context, code string) (Promo, error)
+	ListPromos(ctx context.Context) ([]Promo, error)
+	CreatePromo(ctx context.Context, p Promo) (Promo, error)
+	UpdatePromo(ctx context.Context, p Promo) (Promo, error)
+	DeletePromo(ctx context.Context, code string) error
+	SetPromoActive(ctx context.Context, code string, active bool) (Promo, error)
 }
 
 // HargaConfig mirrors the config/harga singleton doc — see
@@ -135,9 +144,14 @@ type HargaConfig struct {
 	UpdatedAt time.Time
 }
 
-// HargaRepository reads the config/harga singleton. Not yet consumed by
-// CreatePesanan (server-side price/ongkir recomputation is out of scope
-// for UDMC-3's acceptance criteria) — wired up for a follow-up ticket.
+// HargaRepository reads and writes the config/harga singleton. Get is not
+// yet consumed by CreatePesanan (server-side price/ongkir recomputation is
+// out of scope for UDMC-3's acceptance criteria) — wired up for a
+// follow-up ticket. Update always replaces the full doc and sets UpdatedAt
+// server-side, ignoring whatever the caller passed in (mirrors
+// saveHarga()'s setDoc — reference/udang-dashboard/index.html lines
+// ~5124-5148).
 type HargaRepository interface {
 	Get(ctx context.Context) (HargaConfig, error)
+	Update(ctx context.Context, cfg HargaConfig) (HargaConfig, error)
 }
