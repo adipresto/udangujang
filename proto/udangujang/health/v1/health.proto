@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package udangujang.health.v1;
 
-option go_package = "udangujang/das/gen/udangujang/health/v1;healthv1";
+option go_package = "udangujang/das/internal/pb/udangujang/health/v1;healthv1";
 
 // HealthService lets callers (SSR) verify DAS is reachable and serving.
 // Storage-agnostic by design: no Firestore-specific types belong here or in

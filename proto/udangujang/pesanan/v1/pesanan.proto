@@ -2,18 +2,24 @@ syntax = "proto3";
 
 package udangujang.pesanan.v1;
 
-option go_package = "udangujang/das/gen/udangujang/pesanan/v1;pesananv1";
+option go_package = "udangujang/das/internal/pb/udangujang/pesanan/v1;pesananv1";
 
 import "google/protobuf/timestamp.proto";
+import "udangujang/kastamer/v1/kastamer.proto";
 
 // PesananService is storage-agnostic by design: no Firestore-specific types
 // (document references, native Timestamp) belong here or in any future
 // proto in this package — see docs/architecture.md. CreatePesanan is the
 // only write path for new orders (public form and admin dashboard both
 // call it, see docs/scenario.md) — it upserts Kastamer by no_hp and
-// reuses-or-creates Alamat, then writes the Pesanan.
+// reuses-or-creates Alamat, then writes the Pesanan. ListPesanan,
+// GetPesananDetail and UpdateStatusPesanan (UDMC-6) back the admin
+// dashboard's pesanan list, detail panel, and status toggles.
 service PesananService {
   rpc CreatePesanan(CreatePesananRequest) returns (CreatePesananResponse);
+  rpc ListPesanan(ListPesananRequest) returns (ListPesananResponse);
+  rpc GetPesananDetail(GetPesananDetailRequest) returns (GetPesananDetailResponse);
+  rpc UpdateStatusPesanan(UpdateStatusPesananRequest) returns (UpdateStatusPesananResponse);
 }
 
 // PesananItem is one line item of a persisted Pesanan. harga/subtotal are
@@ -104,4 +110,60 @@ message CreatePesananRequest {
 message CreatePesananResponse {
   string pesanan_id = 1;
   Pesanan pesanan = 2;
+}
+
+// StatusLog is one audit-trail entry for a status change on a Pesanan —
+// jenis_status is "pengiriman" or "pembayaran" (see
+// docs/migration-context.md § pesanan).
+message StatusLog {
+  string id = 1;
+  string pesanan_id = 2;
+  string status_lama = 3;
+  string status_baru = 4;
+  string jenis_status = 5;
+  google.protobuf.Timestamp changed_at = 6;
+}
+
+// ListPesananRequest narrows by delivery date range (tanggal_antar) and/or
+// exact status match; unset fields mean "no filter" on that dimension.
+// limit <= 0 means unlimited.
+message ListPesananRequest {
+  google.protobuf.Timestamp tanggal_dari = 1;
+  google.protobuf.Timestamp tanggal_sampai = 2;
+  string status_pengiriman = 3;
+  string status_pembayaran = 4;
+  int32 limit = 5;
+}
+
+message ListPesananResponse {
+  repeated Pesanan pesanan = 1;
+}
+
+message GetPesananDetailRequest {
+  string id = 1;
+}
+
+// GetPesananDetailResponse joins the Pesanan with its Kastamer, Alamat, and
+// status_log — the admin dashboard's pesanan detail panel reads all four
+// together (see docs/migration-context.md § pesanan).
+message GetPesananDetailResponse {
+  Pesanan pesanan = 1;
+  udangujang.kastamer.v1.Kastamer kastamer = 2;
+  udangujang.kastamer.v1.Alamat alamat = 3;
+  repeated StatusLog status_log = 4;
+}
+
+// UpdateStatusPesananRequest changes only the status fields that are set —
+// status_pengiriman/status_pembayaran are optional (proto3 presence), so a
+// caller can flip just one without clobbering the other. See
+// quickStatus()'s verbatim behavior in
+// reference/udang-dashboard/index.html.
+message UpdateStatusPesananRequest {
+  string id = 1;
+  optional string status_pengiriman = 2;
+  optional string status_pembayaran = 3;
+}
+
+message UpdateStatusPesananResponse {
+  Pesanan pesanan = 1;
 }

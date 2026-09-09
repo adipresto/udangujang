@@ -12,12 +12,13 @@ import (
 	pesananv1 "udangujang/das/internal/pb/udangujang/pesanan/v1"
 )
 
-func newTestPesananServer() (*PesananServer, *fakeKastamerRepo, *fakeAlamatRepo, *fakePromoRepo) {
+func newTestPesananServer() (*PesananServer, *fakeKastamerRepo, *fakeAlamatRepo, *fakePromoRepo, *fakePesananRepo) {
 	kastamerRepo := newFakeKastamerRepo()
 	alamatRepo := newFakeAlamatRepo()
 	promoRepo := newFakePromoRepo()
-	s := NewPesananServer(newFakePesananRepo(), kastamerRepo, alamatRepo, promoRepo)
-	return s, kastamerRepo, alamatRepo, promoRepo
+	pesananRepo := newFakePesananRepo()
+	s := NewPesananServer(pesananRepo, kastamerRepo, alamatRepo, promoRepo)
+	return s, kastamerRepo, alamatRepo, promoRepo, pesananRepo
 }
 
 func validCreatePesananRequest() *pesananv1.CreatePesananRequest {
@@ -35,7 +36,7 @@ func validCreatePesananRequest() *pesananv1.CreatePesananRequest {
 
 func TestCreatePesanan_ValidReturnsIDAndItems(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, _ := newTestPesananServer()
+	s, _, _, _, _ := newTestPesananServer()
 
 	resp, err := s.CreatePesanan(ctx, validCreatePesananRequest())
 	if err != nil {
@@ -61,7 +62,7 @@ func TestCreatePesanan_ValidReturnsIDAndItems(t *testing.T) {
 
 func TestCreatePesanan_DuplicateNoHpReusesKastamer(t *testing.T) {
 	ctx := context.Background()
-	s, kastamerRepo, _, _ := newTestPesananServer()
+	s, kastamerRepo, _, _, _ := newTestPesananServer()
 
 	req1 := validCreatePesananRequest()
 	resp1, err := s.CreatePesanan(ctx, req1)
@@ -90,7 +91,7 @@ func TestCreatePesanan_DuplicateNoHpReusesKastamer(t *testing.T) {
 
 func TestCreatePesanan_MatchingAlamatReused(t *testing.T) {
 	ctx := context.Background()
-	s, _, alamatRepo, _ := newTestPesananServer()
+	s, _, alamatRepo, _, _ := newTestPesananServer()
 
 	req1 := validCreatePesananRequest()
 	resp1, err := s.CreatePesanan(ctx, req1)
@@ -118,7 +119,7 @@ func TestCreatePesanan_MatchingAlamatReused(t *testing.T) {
 
 func TestCreatePesanan_NewAlamatCreatedWhenNotMatching(t *testing.T) {
 	ctx := context.Background()
-	s, _, alamatRepo, _ := newTestPesananServer()
+	s, _, alamatRepo, _, _ := newTestPesananServer()
 
 	req1 := validCreatePesananRequest()
 	resp1, err := s.CreatePesanan(ctx, req1)
@@ -147,7 +148,7 @@ func TestCreatePesanan_NewAlamatCreatedWhenNotMatching(t *testing.T) {
 
 func TestCreatePesanan_InvalidPhoneRejected(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, _ := newTestPesananServer()
+	s, _, _, _, _ := newTestPesananServer()
 
 	req := validCreatePesananRequest()
 	req.NoHp = "not-a-phone"
@@ -160,7 +161,7 @@ func TestCreatePesanan_InvalidPhoneRejected(t *testing.T) {
 
 func TestCreatePesanan_MissingNamaRejected(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, _ := newTestPesananServer()
+	s, _, _, _, _ := newTestPesananServer()
 
 	req := validCreatePesananRequest()
 	req.Nama = ""
@@ -173,7 +174,7 @@ func TestCreatePesanan_MissingNamaRejected(t *testing.T) {
 
 func TestCreatePesanan_InactivePromoRejected(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, promoRepo := newTestPesananServer()
+	s, _, _, promoRepo, _ := newTestPesananServer()
 	promoRepo.put(domain.Promo{Code: "MATI2026", Active: false, Type: domain.PromoTypeDiscount, Value: 10000})
 
 	req := validCreatePesananRequest()
@@ -187,7 +188,7 @@ func TestCreatePesanan_InactivePromoRejected(t *testing.T) {
 
 func TestCreatePesanan_ExpiredPromoRejected(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, promoRepo := newTestPesananServer()
+	s, _, _, promoRepo, _ := newTestPesananServer()
 	promoRepo.put(domain.Promo{
 		Code:    "LAMA2020",
 		Active:  true,
@@ -207,7 +208,7 @@ func TestCreatePesanan_ExpiredPromoRejected(t *testing.T) {
 
 func TestCreatePesanan_ValidPromoAccepted(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, promoRepo := newTestPesananServer()
+	s, _, _, promoRepo, _ := newTestPesananServer()
 	promoRepo.put(domain.Promo{
 		Code:    "JUMATBERKAH8068",
 		Active:  true,
@@ -231,7 +232,7 @@ func TestCreatePesanan_ValidPromoAccepted(t *testing.T) {
 
 func TestCreatePesanan_PromoBelowMinKgRejected(t *testing.T) {
 	ctx := context.Background()
-	s, _, _, promoRepo := newTestPesananServer()
+	s, _, _, promoRepo, _ := newTestPesananServer()
 	promoRepo.put(domain.Promo{
 		Code:   "BERAT5KG",
 		Active: true,

@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"udangujang/das/internal/domain"
 )
@@ -152,15 +154,26 @@ func (f *fakeWilayahRepo) List(_ context.Context) ([]domain.Wilayah, error) {
 }
 
 // fakePesananRepo is an in-memory domain.PesananRepository used to unit
-// test handlers without a Firestore connection.
+// test handlers without a Firestore connection. kastamerByID/alamatByID
+// let tests seed the joined data GetDetail returns — the fake has no
+// access to fakeKastamerRepo/fakeAlamatRepo, unlike the Firestore impl
+// which reads their collections directly (see store/firestore/pesanan.go).
 type fakePesananRepo struct {
-	mu     sync.Mutex
-	byID   map[string]domain.Pesanan
-	nextID int
+	mu           sync.Mutex
+	byID         map[string]domain.Pesanan
+	statusLogs   map[string][]domain.StatusLog
+	kastamerByID map[string]domain.Kastamer
+	alamatByID   map[string]domain.Alamat
+	nextID       int
 }
 
 func newFakePesananRepo() *fakePesananRepo {
-	return &fakePesananRepo{byID: map[string]domain.Pesanan{}}
+	return &fakePesananRepo{
+		byID:         map[string]domain.Pesanan{},
+		statusLogs:   map[string][]domain.StatusLog{},
+		kastamerByID: map[string]domain.Kastamer{},
+		alamatByID:   map[string]domain.Alamat{},
+	}
 }
 
 func (f *fakePesananRepo) Create(_ context.Context, p domain.Pesanan) (domain.Pesanan, error) {
@@ -179,6 +192,91 @@ func (f *fakePesananRepo) GetByID(_ context.Context, id string) (domain.Pesanan,
 	if !ok {
 		return domain.Pesanan{}, domain.ErrNotFound
 	}
+	return p, nil
+}
+
+func (f *fakePesananRepo) List(_ context.Context, filter domain.PesananFilter) ([]domain.Pesanan, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []domain.Pesanan
+	for _, p := range f.byID {
+		if filter.StatusPengiriman != "" && p.StatusPengiriman != filter.StatusPengiriman {
+			continue
+		}
+		if filter.StatusPembayaran != "" && p.StatusPembayaran != filter.StatusPembayaran {
+			continue
+		}
+		if !filter.TanggalDari.IsZero() && p.TanggalAntar.Before(filter.TanggalDari) {
+			continue
+		}
+		if !filter.TanggalSampai.IsZero() && p.TanggalAntar.After(filter.TanggalSampai) {
+			continue
+		}
+		out = append(out, p)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].TanggalAntar.Before(out[j].TanggalAntar) })
+	if filter.Limit > 0 && len(out) > filter.Limit {
+		out = out[:filter.Limit]
+	}
+	return out, nil
+}
+
+func (f *fakePesananRepo) GetDetail(_ context.Context, id string) (domain.PesananDetail, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.byID[id]
+	if !ok {
+		return domain.PesananDetail{}, domain.ErrNotFound
+	}
+	logs := append([]domain.StatusLog(nil), f.statusLogs[id]...)
+	return domain.PesananDetail{
+		Pesanan:   p,
+		Kastamer:  f.kastamerByID[p.KastamerID],
+		Alamat:    f.alamatByID[p.AlamatID],
+		StatusLog: logs,
+	}, nil
+}
+
+// UpdateStatus mirrors the Firestore implementation's behavior (see
+// store/firestore/pesanan.go's UpdateStatus) so handler tests exercise the
+// same log-writing/tanggal-setting rules a real backend would apply.
+func (f *fakePesananRepo) UpdateStatus(_ context.Context, id string, statusPengiriman, statusPembayaran *string) (domain.Pesanan, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.byID[id]
+	if !ok {
+		return domain.Pesanan{}, domain.ErrNotFound
+	}
+
+	now := time.Now().UTC()
+	if statusPengiriman != nil && *statusPengiriman != p.StatusPengiriman {
+		f.statusLogs[id] = append(f.statusLogs[id], domain.StatusLog{
+			PesananID:   id,
+			StatusLama:  p.StatusPengiriman,
+			StatusBaru:  *statusPengiriman,
+			JenisStatus: domain.JenisStatusPengiriman,
+			ChangedAt:   now,
+		})
+		p.StatusPengiriman = *statusPengiriman
+		if p.StatusPengiriman == domain.StatusPengirimanSudahAntar && p.TanggalKonfirmasiAntar.IsZero() {
+			p.TanggalKonfirmasiAntar = now
+		}
+	}
+	if statusPembayaran != nil && *statusPembayaran != p.StatusPembayaran {
+		f.statusLogs[id] = append(f.statusLogs[id], domain.StatusLog{
+			PesananID:   id,
+			StatusLama:  p.StatusPembayaran,
+			StatusBaru:  *statusPembayaran,
+			JenisStatus: domain.JenisStatusPembayaran,
+			ChangedAt:   now,
+		})
+		p.StatusPembayaran = *statusPembayaran
+		if p.StatusPembayaran == domain.StatusPembayaranSudahBayar && p.TanggalBayar.IsZero() {
+			p.TanggalBayar = now
+		}
+	}
+	p.UpdatedAt = now
+	f.byID[id] = p
 	return p, nil
 }
 

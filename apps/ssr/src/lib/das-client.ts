@@ -24,6 +24,11 @@ import {
   PesananServiceClient,
   type CreatePesananRequest,
   type CreatePesananResponse,
+  type GetPesananDetailResponse,
+  type ListPesananRequest,
+  type ListPesananResponse,
+  type UpdateStatusPesananRequest,
+  type UpdateStatusPesananResponse,
 } from "@udangujang/proto/src/gen/udangujang/pesanan/v1/pesanan";
 
 const DAS_ADDR = process.env.DAS_GRPC_ADDR ?? "localhost:50051";
@@ -198,3 +203,64 @@ export function createPesanan(req: CreatePesananRequest): Promise<CreatePesananR
 }
 
 export type { CreatePesananRequest };
+
+// ListPesananRequest narrows by delivery date range (tanggal_antar) and/or
+// exact status match; unset fields mean "no filter". limit <= 0 = unlimited.
+export interface ListPesananInput {
+  tanggalDari?: Date;
+  tanggalSampai?: Date;
+  statusPengiriman?: string;
+  statusPembayaran?: string;
+  limit?: number;
+}
+
+export function listPesanan(input: ListPesananInput = {}): Promise<ListPesananResponse> {
+  const req: ListPesananRequest = {
+    tanggalDari: input.tanggalDari,
+    tanggalSampai: input.tanggalSampai,
+    statusPengiriman: input.statusPengiriman ?? "",
+    statusPembayaran: input.statusPembayaran ?? "",
+    limit: input.limit ?? 0,
+  };
+  return new Promise((resolve, reject) => {
+    const client = getPesananClient();
+    client.listPesanan(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function getPesananDetail(id: string): Promise<GetPesananDetailResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getPesananClient();
+    client.getPesananDetail({ id }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function updateStatusPesanan(
+  req: UpdateStatusPesananRequest,
+): Promise<UpdateStatusPesananResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getPesananClient();
+    client.updateStatusPesanan(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}

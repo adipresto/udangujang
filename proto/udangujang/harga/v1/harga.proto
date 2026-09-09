@@ -4,7 +4,7 @@ package udangujang.harga.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "udangujang/das/gen/udangujang/harga/v1;hargav1";
+option go_package = "udangujang/das/internal/pb/udangujang/harga/v1;hargav1";
 
 // HargaService exposes pricing config and promo management to callers (SSR
 // public form, admin dashboard) — see docs/architecture.md: SSR never

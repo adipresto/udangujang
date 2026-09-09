@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package udangujang.kastamer.v1;
 
-option go_package = "udangujang/das/gen/udangujang/kastamer/v1;kastamerv1";
+option go_package = "udangujang/das/internal/pb/udangujang/kastamer/v1;kastamerv1";
 
 import "google/protobuf/timestamp.proto";
 

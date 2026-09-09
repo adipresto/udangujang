@@ -24,6 +24,10 @@ const (
 	CollectionPesanan   = "pesanan"
 	CollectionPromoCode = "promo_codes"
 	CollectionConfig    = "config"
+
+	// CollectionStatusLog is a subcollection under each pesanan doc
+	// (pesanan/{id}/statusLog) — see docs/migration-context.md § pesanan.
+	CollectionStatusLog = "statusLog"
 )
 
 // ConfigHargaDocID is the singleton doc ID of config/harga — see

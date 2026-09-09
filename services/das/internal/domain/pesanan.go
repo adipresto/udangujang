@@ -58,10 +58,62 @@ type Pesanan struct {
 }
 
 // PesananRepository is the only write path for new orders — see
-// docs/architecture.md's repository pattern.
+// docs/architecture.md's repository pattern. List/GetDetail/UpdateStatus
+// back the admin dashboard's pesanan list, detail panel, and status
+// toggles (UDMC-6) — see docs/migration-context.md § pesanan.
 type PesananRepository interface {
 	Create(ctx context.Context, p Pesanan) (Pesanan, error)
 	GetByID(ctx context.Context, id string) (Pesanan, error)
+	List(ctx context.Context, filter PesananFilter) ([]Pesanan, error)
+	GetDetail(ctx context.Context, id string) (PesananDetail, error)
+	// UpdateStatus changes only the status fields whose pointer is
+	// non-nil, writing a StatusLog entry per field that actually changes
+	// value and setting TanggalKonfirmasiAntar/TanggalBayar the first
+	// time that field flips to sudah_antar/sudah_bayar — verbatim
+	// quickStatus() behavior from the pre-merge dashboard (see
+	// reference/udang-dashboard/index.html's quickStatus()).
+	UpdateStatus(ctx context.Context, id string, statusPengiriman, statusPembayaran *string) (Pesanan, error)
+}
+
+// JenisStatus values distinguish which status field a StatusLog entry
+// tracks — mirrors quickStatus()'s `field` parameter (see
+// reference/udang-dashboard/index.html).
+const (
+	JenisStatusPengiriman = "pengiriman"
+	JenisStatusPembayaran = "pembayaran"
+)
+
+// StatusLog is one audit-trail entry for a status change on a Pesanan —
+// mirrors the pre-merge dashboard's statusLog doc shape (see
+// reference/udang-dashboard/index.html's LOG_STATUS action).
+type StatusLog struct {
+	ID          string
+	PesananID   string
+	StatusLama  string
+	StatusBaru  string
+	JenisStatus string
+	ChangedAt   time.Time
+}
+
+// PesananFilter narrows List() by delivery date range (against
+// TanggalAntar) and/or exact status match; zero values mean "no filter" on
+// that dimension. Limit <= 0 means unlimited.
+type PesananFilter struct {
+	TanggalDari      time.Time
+	TanggalSampai    time.Time
+	StatusPengiriman string
+	StatusPembayaran string
+	Limit            int
+}
+
+// PesananDetail is a Pesanan joined with its Kastamer, Alamat, and audit
+// trail — the admin dashboard's pesanan detail panel reads all four
+// together (see docs/migration-context.md § pesanan).
+type PesananDetail struct {
+	Pesanan   Pesanan
+	Kastamer  Kastamer
+	Alamat    Alamat
+	StatusLog []StatusLog
 }
 
 // Promo types — see docs/migration-context.md § shared/promo_codes.

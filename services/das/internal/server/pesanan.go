@@ -105,6 +105,76 @@ func (s *PesananServer) CreatePesanan(ctx context.Context, req *pesananv1.Create
 	}, nil
 }
 
+func (s *PesananServer) ListPesanan(ctx context.Context, req *pesananv1.ListPesananRequest) (*pesananv1.ListPesananResponse, error) {
+	filter := domain.PesananFilter{
+		StatusPengiriman: req.GetStatusPengiriman(),
+		StatusPembayaran: req.GetStatusPembayaran(),
+		Limit:            int(req.GetLimit()),
+	}
+	if req.GetTanggalDari() != nil {
+		filter.TanggalDari = req.GetTanggalDari().AsTime()
+	}
+	if req.GetTanggalSampai() != nil {
+		filter.TanggalSampai = req.GetTanggalSampai().AsTime()
+	}
+
+	list, err := s.pesananRepo.List(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*pesananv1.Pesanan, 0, len(list))
+	for _, p := range list {
+		out = append(out, pesananToProto(p))
+	}
+	return &pesananv1.ListPesananResponse{Pesanan: out}, nil
+}
+
+func (s *PesananServer) GetPesananDetail(ctx context.Context, req *pesananv1.GetPesananDetailRequest) (*pesananv1.GetPesananDetailResponse, error) {
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id wajib diisi")
+	}
+
+	detail, err := s.pesananRepo.GetDetail(ctx, req.GetId())
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, status.Errorf(codes.NotFound, "pesanan %q tidak ditemukan", req.GetId())
+		}
+		return nil, err
+	}
+
+	logs := make([]*pesananv1.StatusLog, 0, len(detail.StatusLog))
+	for _, l := range detail.StatusLog {
+		logs = append(logs, statusLogToProto(l))
+	}
+
+	return &pesananv1.GetPesananDetailResponse{
+		Pesanan:   pesananToProto(detail.Pesanan),
+		Kastamer:  kastamerToProto(detail.Kastamer),
+		Alamat:    alamatToProto(detail.Alamat),
+		StatusLog: logs,
+	}, nil
+}
+
+func (s *PesananServer) UpdateStatusPesanan(ctx context.Context, req *pesananv1.UpdateStatusPesananRequest) (*pesananv1.UpdateStatusPesananResponse, error) {
+	if req.GetId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id wajib diisi")
+	}
+	if req.StatusPengiriman == nil && req.StatusPembayaran == nil {
+		return nil, status.Error(codes.InvalidArgument, "status_pengiriman atau status_pembayaran wajib diisi")
+	}
+
+	updated, err := s.pesananRepo.UpdateStatus(ctx, req.GetId(), req.StatusPengiriman, req.StatusPembayaran)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, status.Errorf(codes.NotFound, "pesanan %q tidak ditemukan", req.GetId())
+		}
+		return nil, err
+	}
+
+	return &pesananv1.UpdateStatusPesananResponse{Pesanan: pesananToProto(updated)}, nil
+}
+
 func validateCreatePesananRequest(req *pesananv1.CreatePesananRequest) error {
 	if req.GetNama() == "" {
 		return status.Error(codes.InvalidArgument, "nama wajib diisi")
@@ -292,4 +362,15 @@ func pesananToProto(p domain.Pesanan) *pesananv1.Pesanan {
 		out.TanggalBayar = timestamppb.New(p.TanggalBayar)
 	}
 	return out
+}
+
+func statusLogToProto(l domain.StatusLog) *pesananv1.StatusLog {
+	return &pesananv1.StatusLog{
+		Id:          l.ID,
+		PesananId:   l.PesananID,
+		StatusLama:  l.StatusLama,
+		StatusBaru:  l.StatusBaru,
+		JenisStatus: l.JenisStatus,
+		ChangedAt:   timestamppb.New(l.ChangedAt),
+	}
 }

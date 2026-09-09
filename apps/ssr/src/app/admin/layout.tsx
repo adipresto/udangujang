@@ -113,6 +113,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </strong>
         <nav style={{ display: "flex", gap: 8, flex: 1 }}>
           <Link
+            href="/admin/pesanan"
+            style={linkStyle(
+              pathname === "/admin/pesanan" || pathname.startsWith("/admin/pesanan/"),
+            )}
+          >
+            Pesanan
+          </Link>
+          <Link
             href="/admin/harga"
             style={linkStyle(pathname === "/admin/harga" || pathname === "/admin")}
           >
