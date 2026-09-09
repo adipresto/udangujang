@@ -1,0 +1,69 @@
+# DAS (Go gRPC, internal only). TIDAK ADA Ingress — hanya dipanggil SSR
+# di dalam cluster via das:50051 (env DAS_GRPC_ADDR, lihat 06-ssr-deployment).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: das
+  namespace: udangujang
+  labels:
+    app: das
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: das
+  template:
+    metadata:
+      labels:
+        app: das
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: das
+          image: ghcr.io/adipresto/udangujang-das:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 50051
+              name: grpc
+          env:
+            - name: FIRESTORE_PROJECT_ID
+              value: atminujangudang
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /sa/sa.json
+            - name: DAS_PORT
+              value: "50051"
+          volumeMounts:
+            - name: firebase-sa
+              mountPath: /sa
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+      volumes:
+        - name: firebase-sa
+          secret:
+            secretName: das-firebase-sa
+            items:
+              - key: sa.json
+                path: sa.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: das
+  namespace: udangujang
+  labels:
+    app: das
+spec:
+  type: ClusterIP
+  selector:
+    app: das
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051

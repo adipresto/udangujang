@@ -1,0 +1,14 @@
+# Service-account Firebase untuk DAS (baca Firestore production).
+# Dibuat manual SEKALI dari file ~/sa-udangudang.json di VM, tidak di-commit:
+#   kubectl -n udangujang create secret generic das-firebase-sa \
+#     --from-file=sa.json=$HOME/sa-udangudang.json
+# DAS membaca via env GOOGLE_APPLICATION_CREDENTIALS=/sa/sa.json (lihat
+# 05-das-deployment.yaml). Rotasi: delete + create ulang + rollout restart.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: das-firebase-sa-placeholder-DO-NOT-APPLY
+  namespace: udangujang
+type: Opaque
+stringData:
+  sa.json: REPLACE_ME_VIA_KUBECTL_CREATE_SECRET

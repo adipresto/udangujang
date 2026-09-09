@@ -1,0 +1,60 @@
+# SSR (Next.js standalone). Satu-satunya service publik.
+# TIDAK pakai oauth2-proxy (beda pola obsidian-vault) — admin login sudah
+# ditangani Firebase Auth di dalam app (UDMC-5); form /pesan publik memang
+# harus tanpa auth gate. Jangan "perbaiki" balik ke oauth2-proxy.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssr
+  namespace: udangujang
+  labels:
+    app: ssr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssr
+  template:
+    metadata:
+      labels:
+        app: ssr
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: ssr
+          image: ghcr.io/adipresto/udangujang-ssr:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: DAS_GRPC_ADDR
+              value: das:50051
+            - name: PORT
+              value: "3000"
+          # NEXT_PUBLIC_* dibake saat build image (lihat apps/ssr/Dockerfile),
+          # bukan via env di sini.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssr
+  namespace: udangujang
+  labels:
+    app: ssr
+spec:
+  type: ClusterIP
+  selector:
+    app: ssr
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
