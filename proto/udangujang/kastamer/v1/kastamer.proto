@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package udangujang.kastamer.v1;
+
+option go_package = "udangujang/das/gen/udangujang/kastamer/v1;kastamerv1";
+
+import "google/protobuf/timestamp.proto";
+
+// WilayahService, KastamerService and AlamatService are storage-agnostic by
+// design: no Firestore-specific types (document references, native
+// Timestamp) belong here or in any future proto in this package — see
+// docs/architecture.md. Kastamer stays unique by no_hp; an Alamat always
+// belongs to exactly one Kastamer (1 Kastamer : N Alamat, see
+// docs/migration-context.md § Alamat).
+
+message Wilayah {
+  string id = 1;
+  string nama = 2;
+  string kota = 3;
+  string provinsi = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// Kastamer is a pure customer profile — address data lives in Alamat.
+message Kastamer {
+  string id = 1;
+  string nama = 2;
+  string no_hp = 3;
+  string catatan = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message Alamat {
+  string id = 1;
+  string kastamer_id = 2;
+  string wilayah_id = 3;
+  string label = 4;
+  string alamat = 5;
+  double lat = 6;
+  double lng = 7;
+  string maps_link = 8;
+  bool is_default = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+service WilayahService {
+  rpc CreateWilayah(CreateWilayahRequest) returns (CreateWilayahResponse);
+  rpc ListWilayah(ListWilayahRequest) returns (ListWilayahResponse);
+}
+
+message CreateWilayahRequest {
+  string nama = 1;
+  string kota = 2;
+  string provinsi = 3;
+}
+
+message CreateWilayahResponse {
+  Wilayah wilayah = 1;
+}
+
+message ListWilayahRequest {}
+
+message ListWilayahResponse {
+  repeated Wilayah wilayah = 1;
+}
+
+service KastamerService {
+  rpc CreateKastamer(CreateKastamerRequest) returns (CreateKastamerResponse);
+  rpc GetKastamerByNoHp(GetKastamerByNoHpRequest) returns (GetKastamerByNoHpResponse);
+  rpc ListKastamer(ListKastamerRequest) returns (ListKastamerResponse);
+  rpc UpdateKastamer(UpdateKastamerRequest) returns (UpdateKastamerResponse);
+}
+
+message CreateKastamerRequest {
+  string nama = 1;
+  string no_hp = 2;
+  string catatan = 3;
+}
+
+message CreateKastamerResponse {
+  Kastamer kastamer = 1;
+}
+
+message GetKastamerByNoHpRequest {
+  string no_hp = 1;
+}
+
+message GetKastamerByNoHpResponse {
+  Kastamer kastamer = 1;
+}
+
+message ListKastamerRequest {}
+
+message ListKastamerResponse {
+  repeated Kastamer kastamer = 1;
+}
+
+message UpdateKastamerRequest {
+  string id = 1;
+  string nama = 2;
+  string catatan = 3;
+}
+
+message UpdateKastamerResponse {
+  Kastamer kastamer = 1;
+}
+
+service AlamatService {
+  rpc CreateAlamat(CreateAlamatRequest) returns (CreateAlamatResponse);
+  rpc ListAlamatByKastamer(ListAlamatByKastamerRequest) returns (ListAlamatByKastamerResponse);
+  rpc UpdateAlamat(UpdateAlamatRequest) returns (UpdateAlamatResponse);
+}
+
+message CreateAlamatRequest {
+  string kastamer_id = 1;
+  string wilayah_id = 2;
+  string label = 3;
+  string alamat = 4;
+  double lat = 5;
+  double lng = 6;
+  string maps_link = 7;
+  bool is_default = 8;
+}
+
+message CreateAlamatResponse {
+  Alamat alamat = 1;
+}
+
+message ListAlamatByKastamerRequest {
+  string kastamer_id = 1;
+}
+
+message ListAlamatByKastamerResponse {
+  repeated Alamat alamat = 1;
+}
+
+message UpdateAlamatRequest {
+  string id = 1;
+  string wilayah_id = 2;
+  string label = 3;
+  string alamat = 4;
+  double lat = 5;
+  double lng = 6;
+  string maps_link = 7;
+  bool is_default = 8;
+}
+
+message UpdateAlamatResponse {
+  Alamat alamat = 1;
+}

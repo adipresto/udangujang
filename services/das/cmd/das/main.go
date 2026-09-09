@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
@@ -13,7 +14,9 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	healthv1 "udangujang/das/internal/pb/udangujang/health/v1"
+	kastamerv1 "udangujang/das/internal/pb/udangujang/kastamer/v1"
 	"udangujang/das/internal/server"
+	fsstore "udangujang/das/internal/store/firestore"
 )
 
 func main() {
@@ -27,8 +30,21 @@ func main() {
 		log.Fatalf("das: failed to listen on %s: %v", addr, err)
 	}
 
+	fsClient, err := fsstore.NewClient(context.Background())
+	if err != nil {
+		log.Fatalf("das: failed to init firestore client: %v", err)
+	}
+	defer fsClient.Close()
+
+	wilayahRepo := fsstore.NewWilayahRepository(fsClient)
+	kastamerRepo := fsstore.NewKastamerRepository(fsClient)
+	alamatRepo := fsstore.NewAlamatRepository(fsClient)
+
 	grpcServer := grpc.NewServer()
 	healthv1.RegisterHealthServiceServer(grpcServer, server.NewHealthServer())
+	kastamerv1.RegisterWilayahServiceServer(grpcServer, server.NewWilayahServer(wilayahRepo))
+	kastamerv1.RegisterKastamerServiceServer(grpcServer, server.NewKastamerServer(kastamerRepo))
+	kastamerv1.RegisterAlamatServiceServer(grpcServer, server.NewAlamatServer(alamatRepo))
 	reflection.Register(grpcServer)
 
 	log.Printf("das: gRPC server listening on %s", addr)
