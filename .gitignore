@@ -21,3 +21,5 @@ services/das/das
 # misc
 *.log
 .DS_Store
+reference/
+services/das/cmd/fscheck/
