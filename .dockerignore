@@ -1,0 +1,9 @@
+.git
+node_modules
+**/node_modules
+apps/ssr/.next
+services/das/das
+.scratch
+reference
+services/das/cmd/fscheck
+*.log

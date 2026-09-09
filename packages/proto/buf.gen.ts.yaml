@@ -1,0 +1,13 @@
+# TypeScript-only codegen template for Docker builds — same plugin as
+# proto/buf.gen.yaml's TS section, minus the two Go plugins (which need a
+# Go toolchain this stage's node:*-slim image doesn't have).
+# Keep in sync with proto/buf.gen.yaml if the TS plugin config changes.
+version: v2
+plugins:
+  - local: protoc-gen-ts_proto
+    out: ../packages/proto/src/gen
+    opt:
+      - outputServices=grpc-js
+      - esModuleInterop=true
+      - useOptionals=messages
+      - env=node

@@ -1,0 +1,12 @@
+# Go-only codegen template for Docker builds — same two plugins as
+# proto/buf.gen.yaml's Go section, minus the TypeScript plugin (which
+# needs packages/proto's node_modules and isn't needed to build DAS).
+# Keep in sync with proto/buf.gen.yaml if the Go plugin config changes.
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: ../services/das/internal/pb
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: ../services/das/internal/pb
+    opt: paths=source_relative
