@@ -485,3 +485,67 @@ func (f *fakeTransaksiRepo) Reorder(_ context.Context, tanggal string, ids []str
 	}
 	return out, nil
 }
+
+// fakeRuteRepo is an in-memory domain.RuteRepository used to unit test
+// RuteServer without a Firestore connection.
+type fakeRuteRepo struct {
+	mu    sync.Mutex
+	byTgl map[string]domain.RuteHarian
+	depot *domain.Depot
+}
+
+func newFakeRuteRepo() *fakeRuteRepo {
+	return &fakeRuteRepo{byTgl: map[string]domain.RuteHarian{}}
+}
+
+func (f *fakeRuteRepo) Get(_ context.Context, tanggal string) (domain.RuteHarian, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	r, ok := f.byTgl[tanggal]
+	if !ok {
+		return domain.RuteHarian{}, domain.ErrNotFound
+	}
+	return r, nil
+}
+
+func (f *fakeRuteRepo) Save(_ context.Context, tanggal string, pesananIDs []string) (domain.RuteHarian, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	now := time.Now()
+	existing, ok := f.byTgl[tanggal]
+	createdAt := now
+	if ok {
+		createdAt = existing.CreatedAt
+	}
+	r := domain.RuteHarian{
+		Tanggal:    tanggal,
+		PesananIDs: pesananIDs,
+		CreatedAt:  createdAt,
+		UpdatedAt:  now,
+	}
+	f.byTgl[tanggal] = r
+	return r, nil
+}
+
+func (f *fakeRuteRepo) Delete(_ context.Context, tanggal string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.byTgl, tanggal)
+	return nil
+}
+
+func (f *fakeRuteRepo) GetDepot(_ context.Context) (domain.Depot, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.depot == nil {
+		return domain.Depot{}, domain.ErrNotFound
+	}
+	return *f.depot, nil
+}
+
+func (f *fakeRuteRepo) UpdateDepot(_ context.Context, depot domain.Depot) (domain.Depot, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.depot = &depot
+	return depot, nil
+}

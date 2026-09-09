@@ -18,13 +18,14 @@ import (
 const defaultProjectID = "atminujangudang"
 
 const (
-	CollectionKastamer  = "kastamer"
-	CollectionAlamat    = "alamat"
-	CollectionWilayah   = "wilayah"
-	CollectionPesanan   = "pesanan"
-	CollectionPromoCode = "promo_codes"
-	CollectionConfig    = "config"
-	CollectionTransaksi = "transaksi"
+	CollectionKastamer   = "kastamer"
+	CollectionAlamat     = "alamat"
+	CollectionWilayah    = "wilayah"
+	CollectionPesanan    = "pesanan"
+	CollectionPromoCode  = "promo_codes"
+	CollectionConfig     = "config"
+	CollectionTransaksi  = "transaksi"
+	CollectionRuteHarian = "ruteHarian"
 
 	// CollectionStatusLog is a subcollection under each pesanan doc
 	// (pesanan/{id}/statusLog) — see docs/migration-context.md § pesanan.
@@ -34,6 +35,10 @@ const (
 // ConfigHargaDocID is the singleton doc ID of config/harga — see
 // docs/migration-context.md § shared/config/harga.
 const ConfigHargaDocID = "harga"
+
+// ConfigDepotDocID is the singleton doc ID of config/depot — was
+// localStorage udang-depot-v1 pre-merge, now server-side.
+const ConfigDepotDocID = "depot"
 
 // NewClient builds a Firestore client for the project named by
 // FIRESTORE_PROJECT_ID, falling back to the production project ID.

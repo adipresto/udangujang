@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package udangujang.rute.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "udangujang/das/internal/pb/udangujang/rute/v1;rutev1";
+
+// RuteService manages the daily delivery route order and the single depot
+// point — standalone, not joined to Pesanan/Alamat (join happens SSR-side).
+// Mirrors reference/udang-dashboard/index.html: getRuteHarian ~2769,
+// persistRouteOrder ~2808, depot ~2749-2767 & ~3204-3221.
+service RuteService {
+  rpc GetRute(GetRuteRequest) returns (GetRuteResponse);
+  rpc SaveRute(SaveRuteRequest) returns (SaveRuteResponse);
+  rpc DeleteRute(DeleteRuteRequest) returns (DeleteRuteResponse);
+  rpc GetDepot(GetDepotRequest) returns (GetDepotResponse);
+  rpc UpdateDepot(UpdateDepotRequest) returns (UpdateDepotResponse);
+}
+
+// RuteHarian mirrors a ruteHarian doc — doc ID is tanggal.
+message RuteHarian {
+  string tanggal = 1; // YYYY-MM-DD, doc ID
+  repeated string pesanan_ids = 2; // urutan pengiriman
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+// Depot is the single depot/gudang point — was localStorage udang-depot-v1
+// pre-merge, now server-side so it's consistent across devices.
+message Depot {
+  string nama = 1;
+  string alamat = 2;
+  double lat = 3;
+  double lng = 4;
+  string maps_link = 5;
+}
+
+message GetRuteRequest {
+  string tanggal = 1;
+}
+
+// rute is nil when no route has been saved yet for tanggal.
+message GetRuteResponse {
+  RuteHarian rute = 1;
+}
+
+// SaveRuteRequest upserts pesanan_ids for tanggal — matches
+// persistRouteOrder()'s upsert-by-tanggal semantics.
+message SaveRuteRequest {
+  string tanggal = 1;
+  repeated string pesanan_ids = 2;
+}
+
+message SaveRuteResponse {
+  RuteHarian rute = 1;
+}
+
+message DeleteRuteRequest {
+  string tanggal = 1;
+}
+
+message DeleteRuteResponse {}
+
+message GetDepotRequest {}
+
+// depot is nil when no depot has been configured yet.
+message GetDepotResponse {
+  Depot depot = 1;
+}
+
+message UpdateDepotRequest {
+  Depot depot = 1;
+}
+
+message UpdateDepotResponse {
+  Depot depot = 1;
+}

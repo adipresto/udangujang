@@ -47,6 +47,18 @@ import {
   type Transaksi,
   type UpdateTransaksiResponse,
 } from "@udangujang/proto/src/gen/udangujang/transaksi/v1/transaksi";
+import {
+  RuteServiceClient,
+  type Depot,
+  type GetDepotResponse,
+  type GetRuteResponse,
+  type SaveRuteResponse,
+} from "@udangujang/proto/src/gen/udangujang/rute/v1/rute";
+import {
+  WilayahServiceClient,
+  type ListWilayahResponse,
+  type Wilayah,
+} from "@udangujang/proto/src/gen/udangujang/kastamer/v1/kastamer";
 
 const DAS_ADDR = process.env.DAS_GRPC_ADDR ?? "localhost:50051";
 
@@ -415,6 +427,102 @@ export function reorderTransaksi(tanggal: string, ids: string[]): Promise<Reorde
   return new Promise((resolve, reject) => {
     const client = getTransaksiClient();
     client.reorderTransaksi({ tanggal, ids }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+function getRuteClient(): RuteServiceClient {
+  return new RuteServiceClient(DAS_ADDR, credentials.createInsecure());
+}
+
+export type { Depot };
+
+export function getRute(tanggal: string): Promise<GetRuteResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getRuteClient();
+    client.getRute({ tanggal }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function saveRute(tanggal: string, pesananIds: string[]): Promise<SaveRuteResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getRuteClient();
+    client.saveRute({ tanggal, pesananIds }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function deleteRute(tanggal: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const client = getRuteClient();
+    client.deleteRute({ tanggal }, (err) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export function getDepot(): Promise<GetDepotResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getRuteClient();
+    client.getDepot({}, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function updateDepot(depot: Depot): Promise<Depot> {
+  return new Promise((resolve, reject) => {
+    const client = getRuteClient();
+    client.updateDepot({ depot }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp.depot ?? depot);
+    });
+  });
+}
+
+function getWilayahClient(): WilayahServiceClient {
+  return new WilayahServiceClient(DAS_ADDR, credentials.createInsecure());
+}
+
+export type { Wilayah };
+
+export function listWilayah(): Promise<ListWilayahResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getWilayahClient();
+    client.listWilayah({}, (err, resp) => {
       client.close();
       if (err) {
         reject(err);
