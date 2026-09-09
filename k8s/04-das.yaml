@@ -17,12 +17,10 @@ spec:
       labels:
         app: das
     spec:
-      imagePullSecrets:
-        - name: ghcr-pull
       containers:
         - name: das
-          image: ghcr.io/adipresto/udangujang-das:latest
-          imagePullPolicy: Always
+          image: udangujang-das:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 50051
               name: grpc

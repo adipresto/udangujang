@@ -2,14 +2,26 @@
 #
 # Arsitektur: browser -> Traefik (:80) -> ssr:3000 -> das:50051 -> Firestore.
 # DAS internal only (ClusterIP, tanpa Ingress). Akses publik via IP mentah:
-# http://70.153.24.73/udang (HTTP, tanpa TLS — tanpa domain, letsencrypt
-# tidak bisa terbit; lihat 06-ingress.yaml).
+# http://70.153.24.73/pesanudang (form, HTTP tanpa TLS — tanpa domain,
+# letsencrypt tidak bisa terbit; lihat 06-ingress.yaml).
 #
-# ## Langkah 0: prasyarat (sekali saja)
+# Image: LOKAL di node (pola gameserver), bukan dari registry.
+# Deployment pakai `imagePullPolicy: Never` + tag `:local`.
+# Alur update image: build di mesin owner -> `ctr images import` di node
+# -> `kubectl rollout restart`. Detail di Langkah 0.
 #
-# 1. Image SSR + DAS sudah di GHCR (CI UDMC-12, trigger push master).
-# 2. Service-account Firebase ada di VM: `~/sa-udangudang.json`.
-# 3. GitHub PAT (scope `read:packages`) untuk pull image private.
+# ## Langkah 0: siapkan image lokal di node (sekali per update)
+#
+# Build di mesin yang ada docker (lihat UDMC-11), lalu pindah + import:
+#
+# ```bash
+# # di mesin build:
+# docker buildx build --platform linux/amd64 -f apps/ssr/Dockerfile -t udangujang-ssr:local .
+# docker buildx build --platform linux/amd64 -f services/das/Dockerfile -t udangujang-das:local .
+# docker save udangujang-ssr:local udangujang-das:local | gzip > udang-images.tar.gz
+# # pindah file ke VM (scp), lalu di VM sebagai root:
+# sudo ctr -n k8s.io images import udang-images.tar.gz
+# ```
 #
 # ## Langkah 1: namespace
 #
@@ -17,13 +29,9 @@
 # kubectl apply -f 01-namespace.yaml
 # ```
 #
-# ## Langkah 2: secrets (JANGAN apply file *.placeholder.yaml)
+# ## Langkah 2: secret Firebase (JANGAN apply file *.placeholder.yaml)
 #
 # ```bash
-# kubectl -n udangujang create secret docker-registry ghcr-pull \
-#   --docker-server=ghcr.io --docker-username=adipresto \
-#   --docker-password=<GITHUB_PAT_READ_PACKAGES> \
-#   --docker-email=rizky.adie7@gmail.com
 # kubectl -n udangujang create secret generic das-firebase-sa \
 #   --from-file=sa.json=$HOME/sa-udangudang.json
 # ```
@@ -47,7 +55,11 @@
 #
 # - Tanpa oauth2-proxy: admin login via Firebase Auth di app (UDMC-5).
 # - Tanpa TLS: akses IP mentah, bukan domain (keputusan owner, opsi B).
-# - Prefix /udang di-strip sebelum sampai Next.js (middleware strip-udang).
+# - Rewrite /pesanudang->/pesan + /atminudang->/admin dikerjakan Next.js
+#   via rewrites() di apps/ssr/next.config.ts (tanpa basePath, asset aman).
+# - Image lokal (bukan GHCR): owner minta pola gameserver; imagePullPolicy
+#   Never. GHCR/CI (UDMC-12) tetap ada sebagai arsip build, tidak dipakai
+#   untuk deploy klaster ini.
 # - Resource: DAS 50m/32Mi req, 250m/128Mi lim; SSR 100m/128Mi req,
 #   500m/512Mi lim. Total ~150m/160Mi req — aman di samping
 #   obsidian-vault + gameserver (2 vCPU/~4GB).

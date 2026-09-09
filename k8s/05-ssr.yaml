@@ -19,12 +19,10 @@ spec:
       labels:
         app: ssr
     spec:
-      imagePullSecrets:
-        - name: ghcr-pull
       containers:
         - name: ssr
-          image: ghcr.io/adipresto/udangujang-ssr:latest
-          imagePullPolicy: Always
+          image: udangujang-ssr:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 3000
               name: http
