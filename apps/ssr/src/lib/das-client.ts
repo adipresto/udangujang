@@ -30,6 +30,15 @@ import {
   type UpdateStatusPesananRequest,
   type UpdateStatusPesananResponse,
 } from "@udangujang/proto/src/gen/udangujang/pesanan/v1/pesanan";
+import {
+  AlamatServiceClient,
+  KastamerServiceClient,
+  type Alamat,
+  type GetKastamerByNoHpResponse,
+  type Kastamer,
+  type ListAlamatByKastamerResponse,
+  type ListKastamerResponse,
+} from "@udangujang/proto/src/gen/udangujang/kastamer/v1/kastamer";
 
 const DAS_ADDR = process.env.DAS_GRPC_ADDR ?? "localhost:50051";
 
@@ -255,6 +264,58 @@ export function updateStatusPesanan(
   return new Promise((resolve, reject) => {
     const client = getPesananClient();
     client.updateStatusPesanan(req, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+function getKastamerClient(): KastamerServiceClient {
+  return new KastamerServiceClient(DAS_ADDR, credentials.createInsecure());
+}
+
+function getAlamatClient(): AlamatServiceClient {
+  return new AlamatServiceClient(DAS_ADDR, credentials.createInsecure());
+}
+
+export type { Kastamer, Alamat };
+
+export function listKastamer(): Promise<ListKastamerResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getKastamerClient();
+    client.listKastamer({}, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function getKastamerByNoHp(noHp: string): Promise<GetKastamerByNoHpResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getKastamerClient();
+    client.getKastamerByNoHp({ noHp }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function listAlamatByKastamer(kastamerId: string): Promise<ListAlamatByKastamerResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getAlamatClient();
+    client.listAlamatByKastamer({ kastamerId }, (err, resp) => {
       client.close();
       if (err) {
         reject(err);

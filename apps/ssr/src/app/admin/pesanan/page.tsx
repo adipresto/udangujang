@@ -108,9 +108,26 @@ export default async function PesananListPage({ searchParams }: PageProps) {
 
   return (
     <section>
-      <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: "0 0 4px" }}>
-        Pesanan
-      </h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, flex: 1 }}>
+          Pesanan
+        </h1>
+        <Link
+          href="/admin/pesanan/baru"
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#fff",
+            background: "#16A34A",
+            borderRadius: 8,
+            padding: "8px 14px",
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          + Tambah
+        </Link>
+      </div>
       <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 16px" }}>
         Daftar pesanan per tanggal antar. Klik baris untuk detail + ubah status.
       </p>

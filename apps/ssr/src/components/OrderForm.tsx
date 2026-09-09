@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { checkPromo, submitPesanan } from "@/app/actions/submitPesanan";
 import {
   checkPromoEligibility,
@@ -22,8 +22,18 @@ import {
   normalizePenerima,
 } from "@/lib/wa-message";
 
+export interface OrderFormKastamerAwal {
+  nama: string;
+  noHp: string;
+  alamat: string;
+  mapsLink: string;
+}
+
 export interface OrderFormProps {
   hargaAwal: HargaConfig;
+  mode?: "publik" | "admin";
+  initialKastamer?: OrderFormKastamerAwal;
+  onSukses?: (pesananId: string) => void;
 }
 
 const BAYAR_OPTIONS = [
@@ -59,7 +69,12 @@ function blurQuarter(raw: string, pack: number): string {
   return String(n > 0 && n < pack ? pack : n);
 }
 
-export default function OrderForm({ hargaAwal }: OrderFormProps) {
+export default function OrderForm({
+  hargaAwal,
+  mode = "publik",
+  initialKastamer,
+  onSukses,
+}: OrderFormProps) {
   const [harga] = useState<HargaConfig>(hargaAwal);
   const [kgUtuh, setKgUtuh] = useState("0");
   const [kgKupas, setKgKupas] = useState("0");
@@ -83,6 +98,18 @@ export default function OrderForm({ hargaAwal }: OrderFormProps) {
   const [promoChecking, setPromoChecking] = useState(false);
   const [errors, setErrors] = useState<{ berat?: string; nama?: string; alamat?: string; bayar?: string }>({});
   const [submitMsg, setSubmitMsg] = useState("");
+  const [submitBusy, setSubmitBusy] = useState(false);
+
+  // Admin pre-fill: saat initialKastamer berubah (kastamer dipilih / Isi
+  // baru), sinkronkan field identitas + alamat. Mode publik tidak pernah
+  // menerima initialKastamer jadi tidak terpengaruh.
+  useEffect(() => {
+    if (!initialKastamer) return;
+    setNama(initialKastamer.nama);
+    setPenerima(initialKastamer.noHp);
+    setAlamat(initialKastamer.alamat);
+    setMapsLink(initialKastamer.mapsLink);
+  }, [initialKastamer]);
 
   const berat = useMemo(
     () => ({
@@ -206,25 +233,29 @@ export default function OrderForm({ hargaAwal }: OrderFormProps) {
 
     const penerimaNorm = normalizePenerima(penerima);
     const tglKirimFormatted = tglKirim ? formatTanggalKirim(tglKirim) : "";
-    const message = buildWaMessage({
-      nama: nama.trim(),
-      penerima: penerimaNorm,
-      alamat: alamat.trim(),
-      mapsLink: mapsLink.trim(),
-      kgUtuh: berat.kgUtuh,
-      kgKupas: berat.kgKupas,
-      kgCumi: berat.kgCumi,
-      kgKembung: berat.kgKembung,
-      kgTeriNasi: berat.kgTeriNasi,
-      bersihKembung,
-      jenisKupas,
-      catatan: catatan.trim(),
-      tglKirimFormatted,
-      bayar,
-      promoKode: calc.promoAktif ? calc.promoAktif.kode : null,
-      calc,
-    });
-    window.open(buildWaUrl(message), "_blank");
+
+    // Mode admin: SKIP redirect WhatsApp — admin tidak chat ke diri sendiri.
+    if (mode === "publik") {
+      const message = buildWaMessage({
+        nama: nama.trim(),
+        penerima: penerimaNorm,
+        alamat: alamat.trim(),
+        mapsLink: mapsLink.trim(),
+        kgUtuh: berat.kgUtuh,
+        kgKupas: berat.kgKupas,
+        kgCumi: berat.kgCumi,
+        kgKembung: berat.kgKembung,
+        kgTeriNasi: berat.kgTeriNasi,
+        bersihKembung,
+        jenisKupas,
+        catatan: catatan.trim(),
+        tglKirimFormatted,
+        bayar,
+        promoKode: calc.promoAktif ? calc.promoAktif.kode : null,
+        calc,
+      });
+      window.open(buildWaUrl(message), "_blank");
+    }
 
     const payload = {
       kgUtuh,
@@ -246,13 +277,28 @@ export default function OrderForm({ hargaAwal }: OrderFormProps) {
       tglKirim,
       harga,
     };
+    setSubmitBusy(true);
+    setSubmitMsg(mode === "admin" ? "Menyimpan pesanan..." : "");
     submitPesanan(payload).then(
       (res) => {
-        if (!res.ok) console.warn("submitPesanan gagal:", res.error);
-        else setSubmitMsg(`Pesanan tersimpan (#${res.pesananId}). Konfirmasi via WhatsApp ya!`);
+        setSubmitBusy(false);
+        if (!res.ok) {
+          if (mode === "admin") setSubmitMsg(`Gagal menyimpan: ${res.error}`);
+          else console.warn("submitPesanan gagal:", res.error);
+          return;
+        }
+        if (mode === "admin") {
+          setSubmitMsg(`Pesanan tersimpan (#${res.pesananId}).`);
+          onSukses?.(res.pesananId);
+        } else {
+          setSubmitMsg(`Pesanan tersimpan (#${res.pesananId}). Konfirmasi via WhatsApp ya!`);
+        }
       },
       (err) => {
-        console.warn("submitPesanan gagal:", err instanceof Error ? err.message : String(err));
+        setSubmitBusy(false);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (mode === "admin") setSubmitMsg(`Gagal menyimpan: ${msg}`);
+        else console.warn("submitPesanan gagal:", msg);
       },
     );
   }
@@ -445,8 +491,8 @@ export default function OrderForm({ hargaAwal }: OrderFormProps) {
 
       {submitMsg && <p className="text-sm text-green-700">{submitMsg}</p>}
 
-      <button type="submit" className="rounded bg-green-600 px-4 py-3 font-bold text-white">
-        Pesan via WhatsApp
+      <button type="submit" disabled={submitBusy} className="rounded bg-green-600 px-4 py-3 font-bold text-white disabled:opacity-50">
+        {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : "Pesan via WhatsApp"}
       </button>
     </form>
   );
