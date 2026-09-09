@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package udangujang.health.v1;
+
+option go_package = "udangujang/das/gen/udangujang/health/v1;healthv1";
+
+// HealthService lets callers (SSR) verify DAS is reachable and serving.
+// Storage-agnostic by design: no Firestore-specific types belong here or in
+// any future proto in this package — see docs/architecture.md.
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    SERVING_STATUS_UNKNOWN = 0;
+    SERVING_STATUS_SERVING = 1;
+    SERVING_STATUS_NOT_SERVING = 2;
+  }
+
+  ServingStatus status = 1;
+  string message = 2;
+}

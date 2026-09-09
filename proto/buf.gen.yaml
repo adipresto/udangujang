@@ -1,0 +1,22 @@
+version: v2
+plugins:
+  # Go server stub, consumed by services/das.
+  # Installed via `go install google.golang.org/protobuf/cmd/protoc-gen-go`
+  # and `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc` (see README).
+  - local: protoc-gen-go
+    out: ../services/das/internal/pb
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: ../services/das/internal/pb
+    opt: paths=source_relative
+
+  # TypeScript client, consumed by apps/ssr via the @udangujang/proto package.
+  # Installed as a devDependency of packages/proto (ts-proto), resolved from
+  # node_modules/.bin by the `proto:gen` npm script — no protoc/docker needed.
+  - local: protoc-gen-ts_proto
+    out: ../packages/proto/src/gen
+    opt:
+      - outputServices=grpc-js
+      - esModuleInterop=true
+      - useOptionals=messages
+      - env=node

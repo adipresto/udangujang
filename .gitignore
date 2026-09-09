@@ -1,0 +1,23 @@
+# deps
+node_modules/
+
+# Next.js build output
+apps/ssr/.next/
+apps/ssr/out/
+apps/ssr/tsconfig.tsbuildinfo
+apps/ssr/next-env.d.ts
+
+# generated proto code (regenerate via `npm run proto:gen`)
+services/das/internal/pb/
+packages/proto/src/gen/
+
+# env
+apps/ssr/.env.local
+apps/ssr/.env*.local
+
+# Go
+services/das/das
+
+# misc
+*.log
+.DS_Store

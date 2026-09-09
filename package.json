@@ -1,0 +1,17 @@
+{
+  "name": "udangujang",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "proto:gen": "cd proto && npx --yes @bufbuild/buf generate",
+    "dev:ssr": "npm run dev --workspace apps/ssr",
+    "build:ssr": "npm run build --workspace apps/ssr"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.4",
+    "sharp": false
+  }
+}

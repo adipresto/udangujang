@@ -1,0 +1,16 @@
+{
+  "name": "@udangujang/proto",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generated gRPC client stubs shared by apps/ssr, produced from proto/ via buf + ts-proto. Do not hand-edit src/gen.",
+  "main": "src/gen/udangujang/health/v1/health.ts",
+  "types": "src/gen/udangujang/health/v1/health.ts",
+  "devDependencies": {
+    "ts-proto": "^2.6.1"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.6",
+    "long": "^5.2.4",
+    "protobufjs": "^7.4.0"
+  }
+}
