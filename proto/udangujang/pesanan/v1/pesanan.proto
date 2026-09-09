@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package udangujang.pesanan.v1;
+
+option go_package = "udangujang/das/gen/udangujang/pesanan/v1;pesananv1";
+
+import "google/protobuf/timestamp.proto";
+
+// PesananService is storage-agnostic by design: no Firestore-specific types
+// (document references, native Timestamp) belong here or in any future
+// proto in this package — see docs/architecture.md. CreatePesanan is the
+// only write path for new orders (public form and admin dashboard both
+// call it, see docs/scenario.md) — it upserts Kastamer by no_hp and
+// reuses-or-creates Alamat, then writes the Pesanan.
+service PesananService {
+  rpc CreatePesanan(CreatePesananRequest) returns (CreatePesananResponse);
+}
+
+// PesananItem is one line item of a persisted Pesanan. harga/subtotal are
+// whole Rupiah amounts (no fractional currency); qty stays a double since
+// weight-based lines (kg) are fractional (e.g. 0.5) — see
+// docs/migration-context.md § pesanan.
+message PesananItem {
+  string nama = 1;
+  double qty = 2;
+  string satuan = 3;
+  int64 harga = 4;
+  int64 subtotal = 5;
+}
+
+// Pesanan mirrors the pre-merge "pesanan" doc shape plus alamat_id (new —
+// see docs/migration-context.md § pesanan). total_harga stays a formatted
+// Rupiah STRING (not a number) for compatibility with the pre-merge
+// dashboard schema, which already reads/writes it as a string.
+message Pesanan {
+  string id = 1;
+  string kastamer_id = 2;
+  string alamat_id = 3;
+  repeated PesananItem items = 4;
+  string deskripsi = 5;
+  int64 ongkir = 6;
+  string catatan_pesanan = 7;
+  string metode_pembayaran = 8;
+  string detail_pembayaran = 9;
+  string metode_pengiriman = 10;
+  string total_harga = 11;
+  string status_pengiriman = 12;
+  string status_pembayaran = 13;
+  // status is the pre-merge doc's legacy free-form field — carried through
+  // as-is, no new meaning assigned to it in this ticket.
+  string status = 14;
+  string kode_promo = 15;
+  google.protobuf.Timestamp tanggal_antar = 16;
+  google.protobuf.Timestamp tanggal_konfirmasi_antar = 17;
+  google.protobuf.Timestamp tanggal_bayar = 18;
+  google.protobuf.Timestamp created_at = 19;
+  google.protobuf.Timestamp updated_at = 20;
+}
+
+// PesananItemInput is the caller-supplied form of a line item — no
+// subtotal (the server computes it from harga * qty).
+message PesananItemInput {
+  string nama = 1;
+  double qty = 2;
+  string satuan = 3;
+  int64 harga = 4;
+}
+
+// CreatePesananRequest carries the full order payload: kastamer identity,
+// destination alamat (either reused via alamat_id or matched/created from
+// the alamat fields), items, and payment/shipping choices. This is the
+// same shape the public form and the admin "tambah pesanan baru" form both
+// submit — see docs/scenario.md.
+message CreatePesananRequest {
+  // Kastamer (upserted by no_hp — see docs/migration-context.md).
+  string nama = 1;
+  string no_hp = 2;
+  string catatan = 3;
+
+  // Alamat: if alamat_id is set and belongs to this kastamer, it is
+  // reused as-is. Otherwise the server matches an existing Alamat with an
+  // identical `alamat` string for this kastamer, reusing it; if none
+  // matches, a new Alamat is created from these fields.
+  string alamat_id = 4;
+  string label = 5;
+  string alamat = 6;
+  double lat = 7;
+  double lng = 8;
+  string maps_link = 9;
+  string wilayah_id = 10;
+
+  repeated PesananItemInput items = 11;
+
+  string metode_pembayaran = 12;
+  string detail_pembayaran = 13;
+  string metode_pengiriman = 14;
+  string kode_promo = 15;
+  google.protobuf.Timestamp tanggal_antar = 16;
+  string deskripsi = 17;
+  string catatan_pesanan = 18;
+  int64 ongkir = 19;
+}
+
+message CreatePesananResponse {
+  string pesanan_id = 1;
+  Pesanan pesanan = 2;
+}

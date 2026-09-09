@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"udangujang/das/internal/domain"
@@ -148,4 +149,64 @@ func (f *fakeWilayahRepo) List(_ context.Context) ([]domain.Wilayah, error) {
 		out = append(out, w)
 	}
 	return out, nil
+}
+
+// fakePesananRepo is an in-memory domain.PesananRepository used to unit
+// test handlers without a Firestore connection.
+type fakePesananRepo struct {
+	mu     sync.Mutex
+	byID   map[string]domain.Pesanan
+	nextID int
+}
+
+func newFakePesananRepo() *fakePesananRepo {
+	return &fakePesananRepo{byID: map[string]domain.Pesanan{}}
+}
+
+func (f *fakePesananRepo) Create(_ context.Context, p domain.Pesanan) (domain.Pesanan, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.nextID++
+	p.ID = fmt.Sprintf("pesanan-%d", f.nextID)
+	f.byID[p.ID] = p
+	return p, nil
+}
+
+func (f *fakePesananRepo) GetByID(_ context.Context, id string) (domain.Pesanan, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.byID[id]
+	if !ok {
+		return domain.Pesanan{}, domain.ErrNotFound
+	}
+	return p, nil
+}
+
+// fakePromoRepo is an in-memory domain.PromoRepository used to unit test
+// handlers without a Firestore connection.
+type fakePromoRepo struct {
+	mu     sync.Mutex
+	byCode map[string]domain.Promo
+}
+
+func newFakePromoRepo() *fakePromoRepo {
+	return &fakePromoRepo{byCode: map[string]domain.Promo{}}
+}
+
+// put stores p under its uppercased Code, mirroring the Firestore
+// implementation's doc-ID convention (see store/firestore/promo.go).
+func (f *fakePromoRepo) put(p domain.Promo) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.byCode[strings.ToUpper(p.Code)] = p
+}
+
+func (f *fakePromoRepo) GetPromo(_ context.Context, code string) (domain.Promo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	p, ok := f.byCode[strings.ToUpper(code)]
+	if !ok {
+		return domain.Promo{}, domain.ErrNotFound
+	}
+	return p, nil
 }

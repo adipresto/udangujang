@@ -1,0 +1,3174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Beli Udang Segar Tambak Tegal Asli - No Freezer | Kirim Langsung Jadebek Free Ongkir</title>
+  <meta name="description" content="Pesan udang segar tambak Tegal asli kualitas premium (non-freezer) langsung antar ke area Jakarta, Depok, dan Bekasi (Jadebek). Dapatkan promo Free Ongkir!" />
+  <meta name="keywords" content="udang segar, tambak tegal asli, udang segar non freezer, udang basah tegal, supplier udang segar, delivery udang jadebek, udang segar free ongkir, pesan udang jakarta, beli udang bekasi, udang depok" />
+  <!-- Preconnect to CSS origins so async-loaded stylesheets fetch faster -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <!-- Google Fonts loaded async (non-render-blocking); body has a real fallback chain -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" /></noscript>
+  <!-- Leaflet (OpenStreetMap) — map is modal-only. JS+CSS di-lazy-load saat user buka modal
+       (lihat loadLeaflet()), lalu di-preload saat idle. Tidak membebani render awal halaman.
+       preconnect/dns-prefetch mempercepat koneksi ke CDN & tile server saat dibutuhkan. -->
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="dns-prefetch" href="https://unpkg.com" />
+  <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org" />
+  <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
+  <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #25D366;
+      --green-dark: #1da851;
+      --blue:       #3b82f6;
+      --blue-light: #eff6ff;
+      --done:       #22c55e;
+      --done-dark:  #16a34a;
+      --gray-50:    #f9fafb;
+      --gray-100:   #f3f4f6;
+      --gray-200:   #e5e7eb;
+      --gray-400:   #9ca3af;
+      --gray-500:   #6b7280;
+      --gray-600:   #4b5563;
+      --gray-700:   #374151;
+      --gray-800:   #1f2937;
+      --red:        #ef4444;
+      --radius:     14px;
+      --shadow:     0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-800);
+      min-height: 100vh;
+      padding: 0 0 120px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: white;
+      padding: 14px 20px 0;
+      border-bottom: 1px solid var(--gray-200);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-top { padding-bottom: 10px; }
+    header h1 { font-size: 1.2rem; font-weight: 700; color: var(--gray-800); }
+    header p  { font-size: 0.78rem; color: var(--gray-500); margin-top: 2px; }
+
+    /* ── Progress Bar — compact, attached to header ── */
+    .progress-nav-wrap { /* removed separate sticky band */ }
+
+    .progress-nav {
+      display: flex;
+      align-items: center;
+      padding: 8px 0 0;
+      max-width: 560px;
+      margin: 0 auto;
+      width: 100%;
+      gap: 0;
+      margin-bottom: 1rem;
+    }
+
+    .prog-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .prog-step:hover { opacity: 0.75; }
+
+    .prog-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--gray-200);
+      background: white;
+      color: var(--gray-400);
+      font-size: 0.68rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+    .prog-circle svg { display: none; width: 9px; height: 9px; }
+
+    .prog-label {
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    .prog-step.active .prog-circle {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .prog-step.active .prog-label { color: var(--blue); }
+
+    .prog-step.done .prog-circle {
+      border-color: var(--done);
+      background: var(--done);
+      color: white;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+    }
+    .prog-step.done .prog-circle span { display: none; }
+    .prog-step.done .prog-circle svg  { display: block; }
+    .prog-step.done .prog-label { color: var(--done-dark); }
+
+    .prog-line {
+      flex: 1;
+      height: 2px;
+      background: var(--gray-200);
+      margin: 0 3px;
+      margin-bottom: 14px;
+      transition: background 0.35s;
+      min-width: 6px;
+      border-radius: 2px;
+    }
+    .prog-line.done { background: var(--done); }
+
+    /* ── Layout ── */
+    .form-body {
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── Step Section ── */
+    .step-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-margin-top: 110px;
+    }
+
+    .step-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      color: var(--gray-600);
+      font-size: 0.78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+    .step-section.done .step-num {
+      background: var(--done);
+      color: white;
+    }
+
+    .step-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--gray-500, #6b7280);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .step-section.done .step-title { color: var(--done-dark); }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .card:focus-within {
+      box-shadow: 0 0 0 2.5px rgba(59,130,246,0.18), var(--shadow);
+    }
+
+    /* ── Labels ── */
+    .field-group-label {
+      display: block;
+      font-size: 0.77rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    label {
+      display: block;
+      font-size: 0.77rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    label .required { color: var(--red); margin-left: 2px; }
+
+    .optional-tag {
+      display: inline-block;
+      font-size: 0.67rem;
+      font-weight: 500;
+      color: var(--gray-500);
+      background: var(--gray-100);
+      border-radius: 999px;
+      padding: 1px 7px;
+      text-transform: none;
+      letter-spacing: 0;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* ── Inputs ── */
+    input[type="text"],
+    input[type="tel"],
+    textarea {
+      width: 100%;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 10px;
+      padding: 13px 14px;
+      font-size: 1rem;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+      font-family: inherit;
+    }
+    input[type="tel"] { padding-left: 52px; }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+      background: white;
+    }
+
+    /* ── Tanggal Pengiriman bar (classy) ── */
+    .tanggal-kirim-bar {
+      background: linear-gradient(180deg, #ffffff 0%, var(--gray-50) 100%);
+    }
+    .tanggal-kirim-bar .tk-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--gray-700);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .tanggal-kirim-bar .tk-label svg { color: var(--blue); }
+    input[type="date"].tk-input {
+      flex: 1;
+      min-width: 0;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--gray-800);
+      background: white;
+      box-shadow: 0 1px 2px rgba(16,24,40,0.05), inset 0 0 0 1px rgba(255,255,255,0.6);
+      transition: border-color 0.15s, box-shadow 0.18s, transform 0.1s;
+      -webkit-appearance: none;
+      appearance: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    input[type="date"].tk-input:hover {
+      border-color: #c7d2fe;
+    }
+    input[type="date"].tk-input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.14), 0 1px 2px rgba(16,24,40,0.05);
+    }
+    input[type="date"].tk-input::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.55;
+      padding: 4px;
+      border-radius: 6px;
+      transition: opacity 0.15s, background 0.15s;
+    }
+    input[type="date"].tk-input::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+      background: var(--blue-light);
+    }
+    input.error, textarea.error { border-color: var(--red); }
+    input.valid, textarea.valid { border-color: var(--done); }
+
+    .field-error { font-size: 0.77rem; color: var(--red); margin-top: 5px; display: none; }
+    .field-error.show { display: block; }
+
+    textarea { resize: none; min-height: 88px; line-height: 1.5; }
+
+    /* ── Phone prefix ── */
+    .phone-wrap { position: relative; }
+    .phone-prefix {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      color: var(--gray-600);
+      font-weight: 500;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ── Maps ── */
+    .maps-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .maps-row  { display: flex; gap: 8px; }
+    .maps-row input { flex: 1; }
+
+    .btn-maps {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 48px;
+      background: var(--blue-light);
+      border: 1.5px solid #bfdbfe;
+      border-radius: 10px;
+      color: var(--blue);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .btn-maps:active { background: #dbeafe; }
+    .maps-hint { font-size: 0.74rem; color: var(--gray-500); line-height: 1.4; }
+    .maps-hint a { color: var(--blue); text-decoration: none; }
+
+    .location-status {
+      font-size: 0.78rem;
+      padding: 7px 10px;
+      border-radius: 8px;
+      display: none;
+    }
+    .location-status.loading { display: block; background: #fef9c3; color: #854d0e; }
+    .location-status.success { display: block; background: #dcfce7; color: #166534; }
+    .location-status.fail    { display: block; background: #fee2e2; color: #991b1b; }
+
+    /* ── Kondisi toggle ── */
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .toggle-option { position: relative; }
+    .toggle-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .toggle-option label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 14px 8px;
+      border-radius: 12px;
+      border: 2px solid var(--gray-200);
+      background: var(--gray-50);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-option label .sub { font-size: 0.72rem; font-weight: 400; color: var(--gray-400); }
+    .toggle-option input:checked + label {
+      border-color: var(--blue);
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+    .toggle-option input:checked + label .sub { color: #60a5fa; }
+
+    /* ── Berat stepper ── */
+    .berat-wrap {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 10px;
+      background: var(--gray-50);
+      overflow: hidden;
+    }
+    .berat-wrap:focus-within {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+      background: white;
+    }
+    .berat-btn {
+      width: 52px; height: 52px;
+      border: none; background: none;
+      font-size: 1.5rem;
+      color: var(--gray-600);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    .berat-btn:active { background: var(--gray-200); }
+    .berat-btn:disabled { color: var(--gray-400); cursor: default; }
+    .berat-input {
+      flex: 1; border: none !important; background: transparent !important;
+      text-align: center; font-size: 1.25rem; font-weight: 700;
+      color: var(--gray-800); padding: 0 !important; box-shadow: none !important;
+      font-family: inherit;
+    }
+    .berat-input:focus { outline: none; box-shadow: none !important; }
+    .berat-unit { font-size: 0.85rem; color: var(--gray-500); padding-right: 14px; font-weight: 500; }
+    .berat-hint { font-size: 0.74rem; color: var(--gray-500); margin-top: 6px; }
+
+    /* ── Produk Lain chips ── */
+    .produk-lain-card { margin-top: 0; }
+    .produk-chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .produk-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 999px;
+      border: 1.5px solid var(--gray-200); background: var(--gray-50);
+      font-size: 0.88rem; font-weight: 600; color: var(--gray-700);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s;
+    }
+    .produk-chip.active {
+      border-color: var(--blue); background: var(--blue-light); color: var(--blue);
+    }
+    .produk-chip .chip-check { display: none; font-size: 0.8rem; }
+    .produk-chip.active .chip-check { display: inline; }
+    .produk-stepper {
+      display: none; margin-top: 6px; padding: 10px 12px;
+      background: var(--gray-50); border-radius: 10px;
+      border: 1.5px solid var(--gray-200);
+      align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .produk-stepper.show { display: flex; }
+    .produk-stepper-label { font-size: 0.84rem; font-weight: 600; color: var(--gray-700); flex: 1; }
+    .produk-stepper-wrap { display: flex; align-items: center; border: 1.5px solid var(--gray-200); border-radius: 8px; background: white; overflow: hidden; }
+    .produk-stepper-btn { width: 38px; height: 38px; border: none; background: none; font-size: 1.3rem; color: var(--gray-600); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .produk-stepper-btn:disabled { color: var(--gray-200); cursor: default; }
+    .produk-stepper-input { width: 38px; border: none !important; background: transparent !important; text-align: center; font-size: 1rem; font-weight: 700; color: var(--gray-800); padding: 0 !important; box-shadow: none !important; font-family: inherit; }
+    .produk-stepper-unit { font-size: 0.8rem; color: var(--gray-500); padding-right: 8px; }
+    .produk-stepper-remove {
+      width: 30px; height: 30px; flex-shrink: 0; margin-left: 2px;
+      border: 1.5px solid var(--gray-200); border-radius: 8px; background: white;
+      color: var(--gray-400); font-size: 1.2rem; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+    }
+    .produk-stepper-remove:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+    .produk-custom-row { margin-top: 10px; }
+    .produk-custom-row input { font-size: 0.92rem; }
+
+    /* ── Nota ── */
+    .nota-card {
+      background: #fffdf5;
+      border: 1.5px dashed #d4a847;
+    }
+    .nota-header {
+      font-size: 0.77rem; font-weight: 700; color: #92680a;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;
+    }
+    .nota-rows { display: flex; flex-direction: column; gap: 8px; }
+    .nota-row  { display: flex; justify-content: space-between; align-items: center; font-size: 0.92rem; }
+    .nota-label { color: var(--gray-600); }
+    .nota-label span { font-weight: 600; color: var(--gray-800); text-transform: none; letter-spacing: 0; font-size: 0.92rem; }
+    .nota-val   { font-weight: 600; color: var(--gray-800); }
+    .nota-extra { color: #b45309; }
+    .nota-free  { color: #16a34a; font-weight: 800; letter-spacing: 0.02em; }
+    .nota-divider { border-top: 1.5px dashed #d4a847; margin: 12px 0; }
+    .nota-total-row { display: flex; justify-content: space-between; align-items: center; }
+    .nota-total-label { font-size: 0.9rem; font-weight: 700; color: var(--gray-800); text-transform: uppercase; letter-spacing: 0.05em; }
+    .nota-total-val   { font-size: 1.2rem; font-weight: 800; color: #92680a; }
+
+    /* ── Char count ── */
+    .char-count { font-size: 0.72rem; color: var(--gray-500); text-align: right; margin-top: 4px; }
+
+    /* ── Payment ── */
+    .pay-group { display: flex; flex-direction: column; gap: 10px; }
+    .pay-section-label {
+      font-size: 0.72rem; font-weight: 700; color: var(--gray-500);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
+    }
+    .pay-option { position: relative; }
+    .pay-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .pay-label {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      background: var(--gray-50);
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pay-option input:checked + .pay-label {
+      border-color: var(--blue);
+      background: var(--blue-light);
+    }
+    .pay-logo {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .pay-logo.jago { background: white; border: 1.5px solid var(--gray-200); }
+    .pay-logo.bca  { background: white; border: 1.5px solid var(--gray-200); }
+    .pay-logo.ovo  { background: white; border: 1.5px solid var(--gray-200); }
+    .pay-logo.cod  { background: var(--gray-600); font-size: 1.3rem; }
+
+    .pay-info { flex: 1; }
+    .pay-name { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); }
+    .pay-desc { font-size: 0.77rem; color: var(--gray-500); margin-top: 1px; }
+
+    .pay-check {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .pay-option input:checked ~ .pay-label .pay-check {
+      background: var(--blue); border-color: var(--blue);
+    }
+    .pay-option input:checked ~ .pay-label .pay-check::after {
+      content: '';
+      width: 5px; height: 9px;
+      border: 2px solid white;
+      border-top: none; border-left: none;
+      transform: rotate(45deg) translate(-1px,-1px);
+      display: block;
+    }
+    .pay-divider { height: 1px; background: var(--gray-200); margin: 4px 0; }
+
+    /* ── Account number reveal ── */
+    .pay-account {
+      display: none;
+      align-items: center; justify-content: space-between; gap: 10px;
+      margin-top: 8px;
+      padding: 12px 14px;
+      background: var(--blue-light);
+      border: 1.5px dashed #93c5fd;
+      border-radius: 10px;
+    }
+    .pay-option input:checked ~ .pay-account { display: flex; }
+    .pay-account-info { min-width: 0; }
+    .pay-account-label {
+      font-size: 0.68rem; font-weight: 700; color: var(--blue);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .pay-account-num {
+      font-size: 1.05rem; font-weight: 800; color: var(--gray-800);
+      letter-spacing: 0.04em; font-variant-numeric: tabular-nums;
+    }
+    .pay-account-name { font-size: 0.74rem; color: var(--gray-600); margin-top: 1px; }
+    .btn-copy-acct {
+      display: flex; align-items: center; gap: 6px;
+      padding: 9px 13px; flex-shrink: 0;
+      background: var(--blue); color: white;
+      border: none; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+    .btn-copy-acct:active { background: #1d4ed8; }
+    .btn-copy-acct.copied { background: var(--green); }
+
+    /* ── Submit ── */
+    .btn-submit {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 17px;
+      background: var(--green); color: white;
+      border: none; border-radius: var(--radius);
+      font-size: 1.05rem; font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 18px rgba(37,211,102,0.38);
+      font-family: inherit;
+    }
+    .btn-submit:active { background: var(--green-dark); transform: scale(0.98); }
+
+    /* ── Reminder toggle button (secondary blue) ── */
+    .btn-reminder-toggle {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 17px 16px;
+      background: var(--blue-light); color: var(--blue);
+      border: 1.5px solid #93c5fd; border-radius: var(--radius);
+      font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .btn-reminder-toggle:active { background: #dbeafe; }
+    .btn-reminder-toggle.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+    /* ── Reminder Banner ── */
+    .reminder-banner {
+      display: none;
+      margin: 12px 16px 0;
+      background: #fff7ed;
+      border: 1.5px solid #fb923c;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .reminder-banner.show { display: block; }
+    .reminder-banner-title { font-size: 0.95rem; font-weight: 700; color: #c2410c; margin-bottom: 4px; }
+    .reminder-banner-body  { font-size: 0.82rem; color: #7c3f00; margin-bottom: 10px; line-height: 1.45; }
+    .reminder-banner-row   { display: flex; gap: 8px; }
+    .btn-reminder-wa {
+      flex: 1; padding: 10px; background: var(--green); color: white;
+      border: none; border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-reminder-wa:active { background: var(--green-dark); }
+    .btn-reminder-dismiss {
+      padding: 10px 14px; background: var(--gray-100); color: var(--gray-600);
+      border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn-reminder-dismiss:active { background: var(--gray-200); }
+
+    /* ── Reminder Modal ── */
+    .reminder-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 110;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s;
+    }
+    .reminder-modal-backdrop.show { opacity: 1; pointer-events: auto; }
+    .reminder-modal-sheet {
+      background: white;
+      width: 100%; max-width: 560px;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px 36px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+    }
+    .reminder-modal-backdrop.show .reminder-modal-sheet { transform: translateY(0); }
+    @media (min-width: 600px) {
+      .reminder-modal-backdrop { align-items: center; }
+      .reminder-modal-sheet {
+        max-width: 400px; border-radius: 18px;
+        transform: scale(0.95) translateY(0);
+        transition: transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.22s;
+        opacity: 0;
+      }
+      .reminder-modal-backdrop.show .reminder-modal-sheet { transform: scale(1); opacity: 1; }
+    }
+    .reminder-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .reminder-modal-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); }
+    .reminder-modal-close {
+      background: var(--gray-100); border: none; border-radius: 50%;
+      width: 30px; height: 30px; font-size: 0.85rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gray-600); font-family: inherit; flex-shrink: 0;
+    }
+    .reminder-modal-close:active { background: var(--gray-200); }
+    .reminder-dt-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
+    .reminder-dt-input {
+      width: 100%; padding: 11px 13px;
+      border: 1.5px solid var(--gray-200); border-radius: 10px;
+      font-size: 0.95rem; font-family: inherit;
+      color: var(--gray-800); outline: none; background: white;
+      margin-bottom: 6px;
+    }
+    .reminder-dt-input:focus { border-color: var(--blue); }
+    .reminder-dt-hint { font-size: 0.75rem; color: var(--gray-500); margin-bottom: 14px; min-height: 1em; }
+    .btn-save-reminder {
+      width: 100%; padding: 14px; background: var(--blue); color: white;
+      border: none; border-radius: var(--radius); font-size: 0.97rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+    .btn-save-reminder:active { background: #2563eb; }
+    .reminder-saved-msg { display: none; text-align: center; padding: 12px 0 0; font-size: 0.88rem; color: #16a34a; font-weight: 600; }
+    .reminder-saved-msg.show { display: block; }
+
+    /* ── Map Modal ── */
+    .map-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.28s;
+    }
+    .map-backdrop.show { opacity: 1; pointer-events: all; }
+
+    .map-sheet {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 560px;
+      height: 88dvh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
+      transform: translateY(100%); transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+    }
+    .map-backdrop.show .map-sheet { transform: translateY(0); }
+
+    .map-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--gray-200);
+      flex-shrink: 0;
+    }
+    .map-header-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); }
+    .map-header-hint  { font-size: 0.75rem; color: var(--gray-500); margin-top: 1px; }
+    .map-close {
+      width: 32px; height: 32px;
+      border-radius: 50%; border: none;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      font-size: 1.1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .map-close:active { background: var(--gray-200); }
+
+    #leaflet-map {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* Fixed center pin (mobile only): pin stays put, map pans underneath it */
+    .map-center-pin {
+      display: none;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -100%);
+      z-index: 500;
+      pointer-events: none;
+      filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35));
+    }
+    @media (max-width: 599px) {
+      .map-center-pin.active { display: block; }
+    }
+
+    .map-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--gray-200);
+      display: flex; flex-direction: column; gap: 8px;
+      flex-shrink: 0;
+    }
+    .map-address {
+      font-size: 0.86rem; color: var(--gray-800); font-weight: 600;
+      text-align: center; line-height: 1.35; min-height: 18px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .map-address.loading { color: var(--gray-500); font-weight: 500; }
+    .map-address .map-addr-spin {
+      width: 13px; height: 13px; flex-shrink: 0;
+      border: 2px solid var(--gray-300); border-top-color: var(--blue);
+      border-radius: 50%; animation: mapAddrSpin 0.7s linear infinite;
+    }
+    @keyframes mapAddrSpin { to { transform: rotate(360deg); } }
+    .map-search-wrap {
+      position: relative;
+      padding: 10px 14px 0;
+      flex-shrink: 0;
+    }
+    .map-search-input {
+      width: 100%; box-sizing: border-box;
+      padding: 10px 36px 10px 14px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 10px;
+      font-size: 0.88rem; font-family: inherit;
+      color: var(--gray-800);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .map-search-input:focus { border-color: var(--blue); }
+    .map-search-spinner {
+      position: absolute; right: 26px; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px;
+      border: 2px solid var(--gray-300); border-top-color: var(--blue);
+      border-radius: 50%; animation: mapAddrSpin 0.7s linear infinite;
+      display: none;
+    }
+    .map-search-spinner.show { display: block; }
+    .map-search-dropdown {
+      position: absolute; left: 14px; right: 14px; top: calc(100% - 2px);
+      background: #ffffff;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      z-index: 9999;
+      overflow: hidden;
+      display: none;
+    }
+    .map-search-dropdown.show { display: block; }
+    .map-search-item {
+      padding: 10px 14px;
+      font-size: 0.84rem; color: var(--gray-800);
+      background: #ffffff;
+      cursor: pointer; line-height: 1.35;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .map-search-item:last-child { border-bottom: none; }
+    .map-search-item:hover { background: var(--blue-light); }
+    .map-search-empty {
+      padding: 12px 14px;
+      font-size: 0.83rem; color: var(--gray-500);
+      text-align: center;
+    }
+    .map-coords {
+      font-size: 0.75rem; color: var(--gray-500);
+      text-align: center; min-height: 16px;
+    }
+    .map-actions { display: flex; gap: 8px; }
+    .map-btn-gps {
+      flex: 1;
+      padding: 12px;
+      background: var(--blue-light);
+      border: 1.5px solid #bfdbfe;
+      border-radius: 12px;
+      color: var(--blue);
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .map-btn-gps:active { background: #dbeafe; }
+    .map-btn-confirm {
+      flex: 2;
+      padding: 12px;
+      background: var(--green);
+      border: none; border-radius: 12px;
+      color: white;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .map-btn-confirm:active { background: var(--green-dark); }
+
+    /* legacy modal (kept for potential reuse) */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 0 0 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-backdrop.show { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: white; border-radius: 20px;
+      padding: 24px 22px 20px;
+      max-width: 360px; width: calc(100% - 32px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      transform: translateY(20px); transition: transform 0.25s;
+    }
+    .modal-backdrop.show .modal-box { transform: translateY(0); }
+    .modal-icon  { font-size: 2.2rem; text-align: center; margin-bottom: 10px; }
+    .modal-title { font-size: 1.05rem; font-weight: 700; text-align: center; color: var(--gray-800); margin-bottom: 8px; }
+    .modal-body  { font-size: 0.9rem; color: var(--gray-600); text-align: center; line-height: 1.55; margin-bottom: 18px; }
+    .modal-body strong { color: var(--gray-800); }
+    .modal-btn   { display: block; width: 100%; padding: 13px; background: var(--blue); color: white; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .modal-btn:active { opacity: 0.85; }
+    /* ── Fixed bottom action dock ── */
+    .bottom-dock {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 95;
+    }
+    .submit-bar {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      padding: 8px 12px;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      box-shadow: 0 -3px 16px rgba(0,0,0,0.10);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .submit-bar .btn-submit {
+      padding: 12px;
+      font-size: 0.98rem;
+      box-shadow: none;
+    }
+    .submit-bar .btn-reminder-toggle {
+      padding: 12px 14px;
+      font-size: 0.85rem;
+    }
+    .bottom-navbar {
+      background: #1a73e8;
+      color: rgba(255,255,255,.75);
+      text-align: center;
+      font-size: 12px;
+      padding: 10px 16px;
+      letter-spacing: .3px;
+    }
+    .bottom-navbar span { color: #fff; font-weight: 600; }
+    
+    /* FAQ SEO Styling */
+    .faq-seo-container {
+      max-height: 0;
+      overflow-y: auto;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s ease;
+      background: #ffffff;
+      color: #374151;
+      text-align: left;
+      font-size: 0.85rem;
+      border-top: 1px solid var(--gray-200);
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      padding: 0 16px;
+    }
+    .faq-seo-container.open {
+      max-height: 380px;
+      padding: 16px;
+    }
+    .faq-seo-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--gray-800);
+      border-bottom: 1px solid var(--gray-200);
+      padding-bottom: 6px;
+    }
+    .faq-seo-item {
+      margin-bottom: 12px;
+    }
+    .faq-seo-question {
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 3px;
+    }
+    .faq-seo-answer {
+      line-height: 1.45;
+      color: var(--gray-600);
+    }
+    .dreamlebs-btn {
+      cursor: pointer;
+      text-decoration: underline;
+      color: #fff !important;
+    }
+    .dreamlebs-btn:hover {
+      opacity: 0.85;
+    }
+  </style>
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "x73906t2fo");
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-G9901KW5M4"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-G9901KW5M4');
+  </script>
+</head>
+<body>
+
+<!-- ── Reminder Banner ── -->
+<div class="reminder-banner" id="reminderBanner">
+  <div class="reminder-banner-title">🦐 Waktunya pesan udang lagi!</div>
+  <div class="reminder-banner-body" id="reminderBannerBody">Kamu punya pengingat untuk memesan. Yuk langsung pesan sekarang!</div>
+  <div class="reminder-banner-row">
+    <button class="btn-reminder-wa" onclick="reminderOpenWA()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+      Pesan Sekarang
+    </button>
+    <button class="btn-reminder-dismiss" onclick="reminderDismiss()">Nanti dulu</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-top">
+    <h1>Form Pesanan</h1>
+    <p>Isi data di bawah, kami akan segera konfirmasi via WhatsApp</p>
+  </div>
+  <!-- Progress Bar — compact, melekat di header -->
+  <div class="progress-nav-wrap">
+  <div class="progress-nav">
+    <div class="prog-step active" id="ps-1" onclick="scrollToStep(1)" title="Pesanan">
+      <div class="prog-circle">
+        <span>1</span>
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9.5 10.5,2.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="prog-label">Pesanan</div>
+    </div>
+    <div class="prog-line" id="pl-1"></div>
+    <div class="prog-step" id="ps-2" onclick="scrollToStep(2)" title="Nama & WhatsApp">
+      <div class="prog-circle">
+        <span>2</span>
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9.5 10.5,2.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="prog-label">Nama</div>
+    </div>
+    <div class="prog-line" id="pl-2"></div>
+    <div class="prog-step" id="ps-3" onclick="scrollToStep(3)" title="Alamat">
+      <div class="prog-circle">
+        <span>3</span>
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9.5 10.5,2.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="prog-label">Alamat</div>
+    </div>
+    <div class="prog-line" id="pl-3"></div>
+    <div class="prog-step" id="ps-4" onclick="scrollToStep(4)" title="Pembayaran">
+      <div class="prog-circle">
+        <span>4</span>
+        <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9.5 10.5,2.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="prog-label">Bayar</div>
+    </div>
+  </div>
+  </div>
+</header>
+
+<main>
+<form id="orderForm" novalidate>
+<div class="form-body">
+
+  <!-- ── STEP 1: PESANAN ── -->
+  <section class="step-section" id="section-1">
+    <div class="step-heading">
+      <div class="step-num">1</div>
+      <div class="step-title">Pesanan</div>
+    </div>
+    <div class="card">
+      <div class="field-group-label">Pesanan <span class="required">*</span></div>
+
+      <!-- Udang Utuh -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;font-size:0.9rem" id="label-berat-utuh">🦐 Udang Utuh</div>
+          <div class="berat-wrap" style="margin:0">
+            <button type="button" class="berat-btn" id="btnMinUtuh" onclick="stepBeratUtuh(-0.5)" disabled aria-label="Kurangi berat udang utuh">−</button>
+            <input class="berat-input" type="text" inputmode="decimal" id="berat-utuh" name="berat-utuh"
+                   value="0" autocomplete="off" aria-labelledby="label-berat-utuh" aria-label="Berat udang utuh dalam kg"
+                   oninput="onBeratInputUtuh(this)" onblur="onBeratBlurUtuh(this)" />
+            <span class="berat-unit">kg</span>
+            <button type="button" class="berat-btn" onclick="stepBeratUtuh(0.5)" aria-label="Tambah berat udang utuh">+</button>
+          </div>
+        </div>
+        <div class="berat-hint" id="hint-harga-utuh" style="margin-top:4px">Rp98.000/kg &nbsp;·&nbsp; ½kg Rp52.500</div>
+        <div class="berat-hint" style="margin-top:3px">1 thinwall ≈ 38–40 ekor · berat bersih 1 kg (tanpa thinwall)</div>
+      </div>
+
+      <!-- Udang Kupas -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;font-size:0.9rem">✂️ Udang Kupas</div>
+          <div class="berat-wrap" style="margin:0">
+            <button type="button" class="berat-btn" id="btnMinKupas" onclick="stepBeratKupas(-0.5)" disabled aria-label="Kurangi berat udang kupas">−</button>
+            <input class="berat-input" type="text" inputmode="decimal" id="berat-kupas" name="berat-kupas"
+                   value="0" autocomplete="off" aria-label="Berat udang kupas dalam kg"
+                   oninput="onBeratInputKupas(this)" onblur="onBeratBlurKupas(this)" />
+            <span class="berat-unit">kg</span>
+            <button type="button" class="berat-btn" onclick="stepBeratKupas(0.5)" aria-label="Tambah berat udang kupas">+</button>
+          </div>
+        </div>
+        <div class="berat-hint" id="hint-harga-kupas" style="margin-top:4px">Rp103.000/kg &nbsp;·&nbsp; ½kg Rp55.500</div>
+        <div class="berat-hint" style="margin-top:3px">Udang ditimbang utuh (1 kg = 38–40 ekor), lalu dikupas — jumlah ekor tetap sama</div>
+        <div class="toggle-group" id="toggle-jenis-kupas" style="margin-top:10px">
+          <div class="toggle-option">
+            <input type="radio" name="jenisKupas" id="kupasTailOn" value="Peel Tail-On" checked onchange="onJenisKupasChange(this)" />
+            <label for="kupasTailOn">Peel Tail-On
+                      <!-- <span class="sub">Ekor menyatu</span> -->
+                    </label>
+          </div>
+          <div class="toggle-option">
+            <input type="radio" name="jenisKupas" id="kupasEasyPeel" value="Easy Peel" onchange="onJenisKupasChange(this)" />
+            <label for="kupasEasyPeel">Easy Peel
+                      <!-- <span class="sub">Kulit menyatu</span> -->
+                    </label>
+          </div>
+        </div>
+      </div>
+
+      <p class="berat-hint" id="hint-berat" style="margin-top:10px">Min. total 0,5 kg. Boleh isi salah satu atau keduanya.</p>
+      <div class="field-error" id="err-berat">Total pesanan minimal 0,5 kg.</div>
+    </div>
+
+    <!-- Produk Lain -->
+    <div class="card produk-lain-card">
+      <div class="field-group-label">Tambah Produk Lain <span class="optional-tag">Opsional</span></div>
+
+      <!-- Cumi -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;font-size:0.9rem" id="label-berat-cumi">🦑 Cumi Bangka</div>
+          <div class="berat-wrap" style="margin:0">
+            <button type="button" class="berat-btn" id="btnMinCumi" onclick="stepBerharga('cumi',-0.5)" disabled aria-label="Kurangi berat cumi">−</button>
+            <input class="berat-input" type="text" inputmode="decimal" id="berat-cumi" name="berat-cumi"
+                   value="0" autocomplete="off" aria-labelledby="label-berat-cumi" aria-label="Berat cumi dalam kg"
+                   oninput="onBerhargaInput('cumi',this)" onblur="onBerhargaBlur('cumi',this)" />
+            <span class="berat-unit">kg</span>
+            <button type="button" class="berat-btn" onclick="stepBerharga('cumi',0.5)" aria-label="Tambah berat cumi">+</button>
+          </div>
+        </div>
+        <div class="berat-hint" id="hint-harga-cumi" style="margin-top:4px">Rp102.000/kg &nbsp;·&nbsp; ½kg Rp53.000 &nbsp;·&nbsp; Ukuran 10 &nbsp;·&nbsp; min. 1 kg</div>
+      </div>
+
+      <!-- Ikan Kembung -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;font-size:0.9rem" id="label-berat-kembung">🐟 Ikan Kembung</div>
+          <div class="berat-wrap" style="margin:0">
+            <button type="button" class="berat-btn" id="btnMinKembung" onclick="stepBerharga('kembung',-0.5)" disabled aria-label="Kurangi berat ikan kembung">−</button>
+            <input class="berat-input" type="text" inputmode="decimal" id="berat-kembung" name="berat-kembung"
+                   value="0" autocomplete="off" aria-labelledby="label-berat-kembung" aria-label="Berat ikan kembung dalam kg"
+                   oninput="onBerhargaInput('kembung',this)" onblur="onBerhargaBlur('kembung',this)" />
+            <span class="berat-unit">kg</span>
+            <button type="button" class="berat-btn" onclick="stepBerharga('kembung',0.5)" aria-label="Tambah berat ikan kembung">+</button>
+          </div>
+        </div>
+        <div class="berat-hint" id="hint-harga-kembung" style="margin-top:4px">Rp53.000/kg &nbsp;·&nbsp; ½kg Rp27.500 &nbsp;·&nbsp; Ukuran 12 &nbsp;·&nbsp; min. 1 kg</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <input type="checkbox" id="bersih-kembung" onchange="onBersihKembungChange(this)" disabled style="width:16px;height:16px;flex-shrink:0" />
+          <label for="bersih-kembung" style="margin:0;text-transform:none;letter-spacing:0;font-weight:500;font-size:0.83rem;color:var(--gray-700)" id="label-bersih-kembung">
+            Bersihkan ikan (lepas insang &amp; isi perut) — +Rp5.000/kg
+          </label>
+        </div>
+        <div class="berat-hint" id="hint-bersih-kembung" style="margin-top:3px">Gratis untuk 0,5 kg pertama, kelebihannya +Rp5.000/kg</div>
+      </div>
+
+      <!-- Teri Nasi -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;font-size:0.9rem" id="label-berat-teri-nasi">🐟 Teri Nasi</div>
+          <div class="berat-wrap" style="margin:0">
+            <button type="button" class="berat-btn" id="btnMinTeriNasi" onclick="stepTeriNasi(-0.25)" disabled aria-label="Kurangi berat teri nasi">−</button>
+            <input class="berat-input" type="text" inputmode="decimal" id="berat-teri-nasi" name="berat-teri-nasi"
+                   value="0" autocomplete="off" aria-labelledby="label-berat-teri-nasi" aria-label="Berat teri nasi dalam kg"
+                   oninput="onBeratInputTeriNasi(this)" onblur="onBeratBlurTeriNasi(this)" />
+            <span class="berat-unit">kg</span>
+            <button type="button" class="berat-btn" onclick="stepTeriNasi(0.25)" aria-label="Tambah berat teri nasi">+</button>
+          </div>
+        </div>
+        <div class="berat-hint" id="hint-harga-teri-nasi" style="margin-top:4px">Rp23.000/250gr &nbsp;·&nbsp; 1kg Rp82.000 &nbsp;·&nbsp; kelipatan 250gr</div>
+      </div>
+
+      <div class="produk-chip-row" id="produk-chip-row">
+        <button type="button" class="produk-chip" id="chip-tongkol" onclick="toggleProduk('tongkol')">
+          <span class="chip-check">✓</span>🐟 Ikan Tongkol
+        </button>
+        <button type="button" class="produk-chip" id="chip-nila" onclick="toggleProduk('nila')">
+          <span class="chip-check">✓</span>🐠 Ikan Nila
+        </button>
+      </div>
+
+      <div class="produk-stepper" id="stepper-tongkol">
+        <div class="produk-stepper-label">🐟 Ikan Tongkol</div>
+        <div class="produk-stepper-wrap">
+          <button type="button" class="produk-stepper-btn" id="btn-tongkol-min" onclick="stepProduk('tongkol',-0.5)" disabled>−</button>
+          <input class="produk-stepper-input" type="text" inputmode="decimal" id="kg-tongkol" value="0.5" autocomplete="off" aria-label="Berat Ikan Tongkol dalam kg" oninput="onProdukInput('tongkol',this)" onblur="onProdukBlur('tongkol',this)" />
+          <span class="produk-stepper-unit">kg</span>
+          <button type="button" class="produk-stepper-btn" onclick="stepProduk('tongkol',0.5)">+</button>
+        </div>
+        <button type="button" class="produk-stepper-remove" onclick="toggleProduk('tongkol')" aria-label="Hapus Ikan Tongkol dari pesanan">×</button>
+      </div>
+
+      <div class="produk-stepper" id="stepper-nila">
+        <div class="produk-stepper-label">🐠 Ikan Nila</div>
+        <div class="produk-stepper-wrap">
+          <button type="button" class="produk-stepper-btn" id="btn-nila-min" onclick="stepProduk('nila',-0.5)" disabled>−</button>
+          <input class="produk-stepper-input" type="text" inputmode="decimal" id="kg-nila" value="0.5" autocomplete="off" aria-label="Berat Ikan Nila dalam kg" oninput="onProdukInput('nila',this)" onblur="onProdukBlur('nila',this)" />
+          <span class="produk-stepper-unit">kg</span>
+          <button type="button" class="produk-stepper-btn" onclick="stepProduk('nila',0.5)">+</button>
+        </div>
+        <button type="button" class="produk-stepper-remove" onclick="toggleProduk('nila')" aria-label="Hapus Ikan Nila dari pesanan">×</button>
+      </div>
+
+	  <!--
+      <div class="produk-custom-row " style="display:flex;gap:8px;margin-top:10px">
+        <input type="text" id="produk-custom" placeholder="Produk lain? Ketik di sini…" maxlength="100"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();tambahProdukCustom();}" />
+        <button type="button" onclick="tambahProdukCustom()"
+                style="flex-shrink:0;padding:0 14px;height:48px;background:var(--blue);color:white;border:none;border-radius:10px;font-weight:700;font-size:0.88rem;cursor:pointer;white-space:nowrap">
+          Tambahkan
+        </button>
+      </div>
+	  -->
+      <ul id="produk-custom-list" style="list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:8px"></ul>
+      <p class="berat-hint" style="margin-top:8px">Harga produk lain dikonfirmasi via WhatsApp.</p>
+    </div>
+
+    <div class="card nota-card">
+      <div class="nota-header">🧾 Ringkasan Pesanan</div>
+      <div class="nota-rows">
+        <div class="nota-row" id="nota-row-utuh" style="display:none">
+          <span class="nota-label">Udang utuh <span id="nota-kg-utuh">0 kg</span></span>
+          <span class="nota-val" id="nota-harga-utuh">Rp0</span>
+        </div>
+        <div class="nota-row" id="nota-row-kupas" style="display:none">
+          <span class="nota-label">Udang kupas <span id="nota-kg-kupas">0 kg</span></span>
+          <span class="nota-val" id="nota-harga-kupas">Rp0</span>
+        </div>
+        <div class="nota-row" id="nota-row-cumi" style="display:none">
+          <span class="nota-label">Cumi <span id="nota-kg-cumi">0 kg</span></span>
+          <span class="nota-val" id="nota-harga-cumi">Rp0</span>
+        </div>
+        <div class="nota-row" id="nota-row-kembung" style="display:none">
+          <span class="nota-label">Ikan kembung <span id="nota-kg-kembung">0 kg</span></span>
+          <span class="nota-val" id="nota-harga-kembung">Rp0</span>
+        </div>
+        <div class="nota-row" id="nota-row-teri-nasi" style="display:none">
+          <span class="nota-label">Teri Nasi <span id="nota-kg-teri-nasi">0 kg</span></span>
+          <span class="nota-val" id="nota-harga-teri-nasi">Rp0</span>
+        </div>
+        <div class="nota-row">
+          <span class="nota-label">Ongkos kirim</span>
+          <span class="nota-val nota-extra" id="nota-ongkir">+Rp10.000</span>
+        </div>
+      </div>
+      <!-- Promo -->
+      <div class="nota-row" id="nota-row-promo" style="display:none">
+        <span class="nota-label" id="nota-promo-label">Diskon promo</span>
+        <span class="nota-val" id="nota-promo-val" style="color:#16a34a;font-weight:700"></span>
+      </div>
+
+      <div class="nota-divider"></div>
+
+      <!-- Input kode promo -->
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="kode-promo" placeholder="Kode promo (opsional)" aria-label="Kode promo"
+               style="flex:1;padding:8px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:0.9rem;text-transform:uppercase"
+               oninput="this.value=this.value.toUpperCase()" />
+        <button type="button" onclick="applyPromo()"
+                style="padding:8px 14px;background:#92680a;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem">
+          Pakai
+        </button>
+      </div>
+      <div id="promo-msg" style="font-size:0.82rem;min-height:18px;margin-bottom:4px"></div>
+
+      <div class="nota-total-row">
+        <span class="nota-total-label">Total</span>
+        <span class="nota-total-val" id="nota-total">Rp0</span>
+      </div>
+    </div>
+    <div class="card">
+      <label for="requestLain">Catatan / Request Lain</label>
+      <textarea id="requestLain" name="requestLain"
+                placeholder="Contoh: tolong dikemas rapi, minta segar hari ini…"
+                maxlength="300" oninput="updateCount(this,'cnt-req')"></textarea>
+      <div class="char-count"><span id="cnt-req">0</span>/300</div>
+    </div>
+  </section>
+
+  <!-- ── STEP 2: NAMA ── -->
+  <section class="step-section" id="section-2">
+    <div class="step-heading">
+      <div class="step-num">2</div>
+      <div class="step-title">Identitas</div>
+    </div>
+    <div class="card">
+      <label for="nama">Nama <span class="required">*</span></label>
+      <input type="text" id="nama" name="nama" placeholder="Nama panggilan"
+             autocomplete="name" inputmode="text" />
+      <div class="field-error" id="err-nama">Nama tidak boleh kosong.</div>
+
+      <label for="penerima" style="margin-top:16px">Nomor Penerima <span class="optional-tag">opsional</span></label>
+      <div class="phone-wrap">
+        <span class="phone-prefix">+62</span>
+        <input type="tel" id="penerima" name="penerima" placeholder="81234567890"
+               autocomplete="tel" inputmode="numeric" />
+      </div>
+      <p class="maps-hint" style="margin-top:6px">Isi jika pesanan dikirim ke orang lain. Jika untuk diri sendiri, kosongkan saja.</p>
+    </div>
+  </section>
+
+  <!-- ── STEP 3: ALAMAT ── -->
+  <section class="step-section" id="section-3">
+    <div class="step-heading">
+      <div class="step-num">3</div>
+      <div class="step-title">Alamat</div>
+    </div>
+    <div class="card">
+      <label for="alamat">Alamat Detail <span class="required">*</span></label>
+      <textarea id="alamat" name="alamat"
+                placeholder="Contoh: Jl. Mawar No. 5, RT 03/RW 02, Kel. Sukajadi, Kec. Bandung Utara"
+                inputmode="text" rows="3"></textarea>
+      <div class="field-error" id="err-alamat">Alamat detail tidak boleh kosong.</div>
+    </div>
+    <div class="card">
+      <div class="field-group-label">Pin Lokasi <span class="optional-tag">opsional</span></div>
+      <div class="maps-wrap">
+        <div class="maps-row">
+          <input type="text" id="mapsLink" name="mapsLink"
+                 placeholder="Link Google Maps muncul di sini…"
+                 inputmode="text" readonly aria-label="Link Google Maps pin lokasi" />
+          <button type="button" class="btn-maps" id="btnMaps" onclick="openMapModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+            Pin Lokasi
+          </button>
+        </div>
+        <div class="location-status" id="locStatus"></div>
+        <p class="maps-hint">Cukup pin titik di peta — alamat akan terisi otomatis. Membantu kurir menemukan lokasimu lebih akurat.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STEP 4: PEMBAYARAN ── -->
+  <section class="step-section" id="section-4">
+    <div class="step-heading">
+      <div class="step-num">4</div>
+      <div class="step-title">Pembayaran</div>
+    </div>
+    <div class="card">
+      <div class="field-group-label" id="label-bayar">Metode Pembayaran <span class="required">*</span></div>
+      <div class="pay-group" role="group" aria-labelledby="label-bayar">
+        <p class="pay-section-label">Transfer</p>
+
+        <!-- Jago -->
+        <div class="pay-option">
+          <input type="radio" name="bayar" id="payJago" value="Transfer - Jago" onchange="dispatchField('bayar', this.value)" />
+          <label class="pay-label" for="payJago">
+            <div class="pay-logo jago">
+              <img src="assets/jago-logo.svg" alt="Jago" style="width:38px;height:38px;object-fit:contain;" />
+            </div>
+            <div class="pay-info">
+              <div class="pay-name">Jago</div>
+              <div class="pay-desc">Bank Jago · transfer antar bank</div>
+            </div>
+            <div class="pay-check"></div>
+          </label>
+          <div class="pay-account">
+            <div class="pay-account-info">
+              <div class="pay-account-label">No. Rekening Jago</div>
+              <div class="pay-account-num">101962407482</div>
+            </div>
+            <button type="button" class="btn-copy-acct" onclick="copyAccount(this, '101962407482')">Salin</button>
+          </div>
+        </div>
+
+        <!-- BCA -->
+        <div class="pay-option">
+          <input type="radio" name="bayar" id="payBCA" value="Transfer - BCA" onchange="dispatchField('bayar', this.value)" />
+          <label class="pay-label" for="payBCA">
+            <div class="pay-logo bca">
+              <img src="assets/Logo BCA_Biru.png" alt="BCA" style="width:38px;height:38px;object-fit:contain;" />
+            </div>
+            <div class="pay-info">
+              <div class="pay-name">BCA</div>
+              <div class="pay-desc">Bank Central Asia</div>
+            </div>
+            <div class="pay-check"></div>
+          </label>
+          <div class="pay-account">
+            <div class="pay-account-info">
+              <div class="pay-account-label">No. Rekening BCA</div>
+              <div class="pay-account-num">5221698607</div>
+            </div>
+            <button type="button" class="btn-copy-acct" onclick="copyAccount(this, '5221698607')">Salin</button>
+          </div>
+        </div>
+
+        <!-- OVO -->
+        <div class="pay-option">
+          <input type="radio" name="bayar" id="payOVO" value="Transfer - OVO" onchange="dispatchField('bayar', this.value)" />
+          <label class="pay-label" for="payOVO">
+            <div class="pay-logo ovo">
+              <img src="assets/ovo-logo.png" alt="OVO" style="width:38px;height:38px;object-fit:contain;" />
+            </div>
+            <div class="pay-info">
+              <div class="pay-name">OVO</div>
+              <div class="pay-desc">Dompet digital OVO</div>
+            </div>
+            <div class="pay-check"></div>
+          </label>
+          <div class="pay-account">
+            <div class="pay-account-info">
+              <div class="pay-account-label">No. OVO</div>
+              <div class="pay-account-num">085888031940</div>
+            </div>
+            <button type="button" class="btn-copy-acct" onclick="copyAccount(this, '085888031940')">Salin</button>
+          </div>
+        </div>
+
+        <div class="pay-divider"></div>
+        <p class="pay-section-label">Tunai</p>
+
+        <!-- COD -->
+        <div class="pay-option">
+          <input type="radio" name="bayar" id="payCOD" value="Cash on Delivery (COD)" onchange="dispatchField('bayar', this.value)" />
+          <label class="pay-label" for="payCOD">
+            <div class="pay-logo cod">💵</div>
+            <div class="pay-info">
+              <div class="pay-name">Cash on Delivery</div>
+              <div class="pay-desc">Bayar tunai saat pesanan tiba</div>
+            </div>
+            <div class="pay-check"></div>
+          </label>
+        </div>
+      </div>
+      <div class="field-error" id="err-bayar">Pilih metode pembayaran.</div>
+    </div>
+
+  </section>
+
+</div>
+</form>
+</main>
+
+<!-- ── Reminder Modal ── -->
+<div class="reminder-modal-backdrop" id="reminderModal" onclick="onReminderBackdropClick(event)">
+  <div class="reminder-modal-sheet" id="reminderModalSheet">
+    <div class="reminder-modal-header">
+      <div class="reminder-modal-title">Kami ingatkan kamu via WhatsApp</div>
+      <button class="reminder-modal-close" onclick="closeReminderModal()" aria-label="Tutup">✕</button>
+    </div>
+    <div class="reminder-modal-body">
+      <label class="reminder-dt-label" for="reminderDatetime">Tanggal pengingat</label>
+      <input type="date" id="reminderDatetime" class="reminder-dt-input" />
+      <div class="reminder-dt-hint" id="reminderDtHint"></div>
+      <button class="btn-save-reminder" onclick="saveReminder()">Kirim Pengingat</button>
+      <div class="reminder-saved-msg" id="reminderSavedMsg">✅ Pengingat tersimpan! Kami akan ingatkan kamu.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pin Lokasi -->
+<!-- ── Leaflet Map Modal ── -->
+<div class="map-backdrop" id="mapModal" onclick="onMapBackdropClick(event)">
+  <div class="map-sheet" id="mapSheet">
+    <div class="map-header">
+      <div>
+        <div class="map-header-title">📍 Pin Lokasi</div>
+        <div class="map-header-hint">Seret pin merah untuk menyesuaikan titik</div>
+      </div>
+      <button class="map-close" onclick="closeMapModal()" aria-label="Tutup">✕</button>
+    </div>
+    <div class="map-search-wrap">
+      <input type="text" class="map-search-input" id="mapSearchInput"
+             placeholder="Cari alamat, nama jalan, tempat…"
+             autocomplete="off" inputmode="search" />
+      <div class="map-search-spinner" id="mapSearchSpinner"></div>
+      <div class="map-search-dropdown" id="mapSearchDropdown"></div>
+    </div>
+    <div id="leaflet-map">
+      <div class="map-center-pin" id="mapCenterPin">
+        <svg width="22" height="32" viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 0C5 0 0 5 0 11c0 8 11 21 11 21S22 19 22 11C22 5 17 0 11 0z" fill="#ef4444"/><circle cx="11" cy="11" r="5" fill="white"/></svg>
+      </div>
+    </div>
+    <div class="map-footer">
+      <div class="map-address" id="mapAddress">Seret pin untuk mendeteksi alamat…</div>
+      <div class="map-coords" id="mapCoords">Mendeteksi lokasi…</div>
+      <div class="map-actions">
+        <button type="button" class="map-btn-gps" id="btnGPS" onclick="centerToGPS()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+          Lokasi Saya
+        </button>
+        <button type="button" class="map-btn-confirm" onclick="confirmMapPin()">✓ Konfirmasi Titik</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS di-lazy-load via loadLeaflet() saat modal peta dibuka (lihat di bawah). -->
+<script>
+// ═══════════════════════════════════════════════════
+// notaris.js — inlined (ISC license, github.com/notarisjs)
+// ═══════════════════════════════════════════════════
+function deepMerge(target, source) {
+  var result = Object.assign({}, target);
+  for (var key of Object.keys(source)) {
+    if (typeof source[key] === 'object' && source[key] !== null &&
+        typeof target[key] === 'object' && target[key] !== null) {
+      result[key] = deepMerge(target[key], source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+function terbitkan(stateAsal, fn) {
+  var changes = {};
+  function makeHandler(path) {
+    return {
+      set: function(target, key, value) {
+        var cur = changes;
+        for (var i = 0; i < path.length; i++) {
+          if (!(path[i] in cur)) cur[path[i]] = {};
+          cur = cur[path[i]];
+        }
+        cur[key] = value;
+        return true;
+      },
+      get: function(target, key) {
+        var node = changes;
+        for (var i = 0; i < path.length; i++) {
+          if (node == null || !(path[i] in node)) { node = null; break; }
+          node = node[path[i]];
+        }
+        if (node != null && key in node) {
+          var changed = node[key];
+          if (changed !== null && typeof changed === 'object')
+            return new Proxy(changed, makeHandler([...path, key]));
+          return changed;
+        }
+        var value = target[key];
+        if (value !== null && typeof value === 'object')
+          return new Proxy(value, makeHandler([...path, key]));
+        return value;
+      }
+    };
+  }
+  var draft = new Proxy(stateAsal, makeHandler([]));
+  fn(draft);
+  return deepMerge(stateAsal, changes);
+}
+
+function buatArsip(stateAwal, reducer) {
+  var listeners = new Set();
+  var currentState = stateAwal;
+  var busy = false;
+  return {
+    daftarkan: function(fn) {
+      listeners.add(fn);
+      return function() { listeners.delete(fn); };
+    },
+    ambil: function() { return currentState; },
+    ajukan: function(akta) {
+      if (busy) throw new Error('[buatArsip] dispatch rekursif');
+      busy = true;
+      var next = reducer(currentState, akta);
+      currentState = next;
+      listeners.forEach(function(fn) { fn(next); });
+      busy = false;
+      return next;
+    }
+  };
+}
+// ═══════════════════════════════════════════════════
+
+// ── CONFIG ──────────────────────────────────────────
+const WA_NUMBER = '6285765391558';
+// ────────────────────────────────────────────────────
+
+// ── State awal ──────────────────────────────────────
+const stateAwal = {
+  nama:      '',
+  alamat:    '',
+  kgUtuh:    0,
+  kgKupas:   0,
+  kgCumi:    0,
+  kgKembung: 0,
+  kgTeriNasi:  0,
+  bersihKembung: false,
+  jenisKupas: 'Peel Tail-On',
+  bayar:     '',
+  catatan:   '',
+};
+
+// ── Validasi per-step ────────────────────────────────
+var _produkAktif = {};
+function getProdukLainKg() {
+  var total = 0;
+  Object.keys(_produkAktif).forEach(function(id) {
+    if (_produkAktif[id]) {
+      var el = document.getElementById('kg-' + id);
+      total += el ? (parseFloat(el.value) || 1) : 1;
+    }
+  });
+  return total;
+}
+function hasCustomProduk() {
+  var list = document.getElementById('produk-custom-list');
+  return !!(list && list.querySelectorAll('li').length > 0);
+}
+function isStep1Done(s) {
+  if (hasCustomProduk()) return true; // berat custom tidak diketahui, anggap terisi
+  var total = s.kgUtuh + s.kgKupas + (s.kgCumi || 0) + (s.kgKembung || 0) + (s.kgTeriNasi || 0) + getProdukLainKg();
+  if (total < 0.5) return false;
+  return total >= getMinKg();
+}
+function isStep2Done(s) {
+  return s.nama.trim().length > 0;
+}
+function isStep3Done(s) {
+  return s.alamat.trim().length > 0;
+}
+function isStep4Done(s) {
+  return s.bayar.length > 0;
+}
+
+// ── Reducer ──────────────────────────────────────────
+function reducer(state, akta) {
+  switch (akta.type) {
+    case 'SET_FIELD':
+      return terbitkan(state, function(draft) {
+        draft[akta.field] = akta.value;
+      });
+    default:
+      return state;
+  }
+}
+
+const arsip = buatArsip(stateAwal, reducer);
+
+// ── Helper dispatch ───────────────────────────────────
+function dispatchField(field, value) {
+  arsip.ajukan({ type: 'SET_FIELD', field: field, value: value });
+}
+
+// ── Track step yang sedang terlihat (diupdate oleh IntersectionObserver) ──
+var currentVisibleStep = 1;
+
+// ── Render progress bar ───────────────────────────────
+function renderProgress(state) {
+  var checks = [
+    isStep1Done(state),
+    isStep2Done(state),
+    isStep3Done(state),
+    isStep4Done(state),
+  ];
+  for (var i = 1; i <= 4; i++) {
+    var ps = document.getElementById('ps-' + i);
+    var pl = document.getElementById('pl-' + i);
+    ps.classList.remove('done', 'active');
+    if (checks[i - 1]) {
+      ps.classList.add('done');
+      if (pl) pl.classList.add('done');
+    } else {
+      if (pl) pl.classList.remove('done');
+    }
+  }
+  // Highlight step yang sedang terlihat (bukan topmost incomplete)
+  var ps = document.getElementById('ps-' + currentVisibleStep);
+  if (ps && !ps.classList.contains('done')) {
+    ps.classList.add('active');
+  }
+}
+
+// Subscribe
+arsip.daftarkan(renderProgress);
+// Run once with initial state
+renderProgress(arsip.ambil());
+
+// ── Scroll to section ─────────────────────────────────
+function scrollToStep(n) {
+  var el = document.getElementById('section-' + n);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── IntersectionObserver: highlight active step as user scrolls ──
+(function() {
+  var sections = [1,2,3,4].map(function(n) {
+    return document.getElementById('section-' + n);
+  });
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var id = entry.target.id; // "section-N"
+        var n = parseInt(id.replace('section-', ''), 10);
+        currentVisibleStep = n;
+        renderProgress(arsip.ambil());
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+  sections.forEach(function(s) { if (s) observer.observe(s); });
+})();
+
+// ── Copy account number ──────────────────────────────
+function copyAccount(btn, num) {
+  var done = function() {
+    var original = btn.textContent;
+    btn.textContent = 'Tersalin ✓';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(num).then(done).catch(function() { fallbackCopy(num, done); });
+  } else {
+    fallbackCopy(num, done);
+  }
+}
+function fallbackCopy(num, done) {
+  var ta = document.createElement('textarea');
+  ta.value = num;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+// ── Wire up inputs → dispatch ─────────────────────────
+document.getElementById('nama').addEventListener('input', function() {
+  dispatchField('nama', this.value);
+  clearError('nama');
+});
+document.getElementById('alamat').addEventListener('input', function() {
+  dispatchField('alamat', this.value);
+  clearError('alamat');
+  updateNota();
+});
+document.getElementById('berat-utuh').addEventListener('input', function() {
+  var v = parseBeratVal(this.value);
+  dispatchField('kgUtuh', isNaN(v) ? 0 : v);
+});
+document.getElementById('berat-kupas').addEventListener('input', function() {
+  var v = parseBeratVal(this.value);
+  dispatchField('kgKupas', isNaN(v) ? 0 : v);
+});
+document.getElementById('requestLain').addEventListener('input', function() {
+  dispatchField('catatan', this.value);
+});
+
+// ── Leaflet Map Modal ─────────────────────────────────
+var leafletMap = null;
+var leafletMarker = null;
+// Default center: Jakarta
+var DEFAULT_LAT = -6.2088, DEFAULT_LNG = 106.8456;
+
+// Lazy-load Leaflet (JS + CSS) hanya saat dibutuhkan. Hanya sekali; panggilan
+// berikutnya memakai promise yang sama. Membuat halaman index.html ringan saat
+// dibuka (skrip ~150KB tidak ikut diunduh sebelum user benar-benar buka peta).
+var _leafletPromise = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (_leafletPromise) return _leafletPromise;
+  _leafletPromise = new Promise(function(resolve, reject) {
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.async = true;
+    js.onload = function() { resolve(); };
+    js.onerror = function() { _leafletPromise = null; reject(new Error('Gagal memuat peta')); };
+    document.head.appendChild(js);
+  });
+  return _leafletPromise;
+}
+
+function openMapModal() {
+  var modal = document.getElementById('mapModal');
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('mapCoords').textContent = 'Memuat peta…';
+
+  loadLeaflet().then(function() {
+    initLeafletMap();
+    // Always invalidate size after modal opens (avoids grey tiles)
+    setTimeout(function() {
+      leafletMap.invalidateSize();
+      centerToGPS();
+    }, 320);
+  }).catch(function() {
+    document.getElementById('mapCoords').textContent = 'Gagal memuat peta — cek koneksi internet lalu coba lagi.';
+  });
+}
+
+function initLeafletMap() {
+  // Init map once
+  if (!leafletMap) {
+    leafletMap = L.map('leaflet-map', { zoomControl: true, attributionControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(leafletMap);
+
+    // Custom red draggable marker
+    var icon = L.divIcon({
+      html: '<div style="width:22px;height:32px;position:relative"><svg viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 0C5 0 0 5 0 11c0 8 11 21 11 21S22 19 22 11C22 5 17 0 11 0z" fill="#ef4444"/><circle cx="11" cy="11" r="5" fill="white"/></svg></div>',
+      className: '',
+      iconSize: [22, 32],
+      iconAnchor: [11, 32]
+    });
+
+    var isMobileMapUI = window.matchMedia('(max-width: 599px)').matches;
+
+    leafletMarker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: !isMobileMapUI, icon: icon }).addTo(leafletMap);
+    leafletMap.setView([DEFAULT_LAT, DEFAULT_LNG], 14);
+    updateCoordsDisplay(DEFAULT_LAT, DEFAULT_LNG);
+
+    if (isMobileMapUI) {
+      // Mobile: pin stays fixed at screen center; user pans the map underneath it.
+      leafletMarker.setOpacity(0);
+      document.getElementById('mapCenterPin').classList.add('active');
+
+      leafletMap.on('moveend', function() {
+        var center = leafletMap.getCenter();
+        leafletMarker.setLatLng(center);
+        updateCoordsDisplay(center.lat, center.lng);
+      });
+    } else {
+      leafletMarker.on('dragend', function() {
+        var pos = leafletMarker.getLatLng();
+        updateCoordsDisplay(pos.lat, pos.lng);
+      });
+
+      leafletMap.on('click', function(e) {
+        leafletMarker.setLatLng(e.latlng);
+        updateCoordsDisplay(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    initMapSearch();
+  }
+}
+
+function closeMapModal() {
+  document.getElementById('mapModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function onMapBackdropClick(e) {
+  if (e.target === document.getElementById('mapModal')) closeMapModal();
+}
+
+function updateCoordsDisplay(lat, lng) {
+  document.getElementById('mapCoords').textContent =
+    lat.toFixed(6) + ', ' + lng.toFixed(6);
+  reverseGeocode(lat, lng);
+}
+
+// ── Reverse geocoding (alamat otomatis dari titik) ────
+var _pinAddress = '';            // alamat hasil reverse-geocode terbaru
+var _geocodeTimer = null;        // debounce timer
+var _geocodeReqId = 0;           // guard agar respon lama tidak menimpa yg baru
+function reverseGeocode(lat, lng) {
+  _pinAddress = '';
+  var addrEl = document.getElementById('mapAddress');
+  if (addrEl) {
+    addrEl.className = 'map-address loading';
+    addrEl.innerHTML = '<span class="map-addr-spin"></span>Mencari alamat…';
+  }
+  if (_geocodeTimer) clearTimeout(_geocodeTimer);
+  var reqId = ++_geocodeReqId;
+  // Debounce ~600ms — hormati batas 1 req/detik Nominatim & hemat saat drag
+  _geocodeTimer = setTimeout(function() {
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
+      + '&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng)
+      + '&zoom=18&addressdetails=1&accept-language=id';
+    fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (reqId !== _geocodeReqId) return; // sudah ada permintaan lebih baru
+        var name = data && (data.display_name || '');
+        if (!addrEl) return;
+        if (name) {
+          _pinAddress = name;
+          addrEl.className = 'map-address';
+          addrEl.textContent = name;
+        } else {
+          addrEl.className = 'map-address loading';
+          addrEl.textContent = 'Alamat tidak ditemukan — isi manual ya.';
+        }
+      })
+      .catch(function() {
+        if (reqId !== _geocodeReqId || !addrEl) return;
+        addrEl.className = 'map-address loading';
+        addrEl.textContent = 'Gagal memuat alamat — isi manual ya.';
+      });
+  }, 600);
+}
+
+// ── Search box (forward-geocode) ──────────────────────
+var _searchReqId  = 0;
+
+function initMapSearch() {
+  var input    = document.getElementById('mapSearchInput');
+  var dropdown = document.getElementById('mapSearchDropdown');
+  var spinner  = document.getElementById('mapSearchSpinner');
+  if (!input || input._searchBound) return;
+  input._searchBound = true;
+
+  // Reset dropdown saat user mengetik (belum mencari)
+  input.addEventListener('input', function() {
+    dropdown.classList.remove('show');
+    spinner.classList.remove('show');
+  });
+
+  // Cari saat Enter (desktop keyboard & tombol Go/Search di mobile)
+  input.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var q = this.value.trim();
+    if (!q) return;
+    spinner.classList.add('show');
+    dropdown.classList.remove('show');
+    runSearch(q);
+  });
+
+  // Tutup dropdown saat klik di luar
+  document.addEventListener('click', function(e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+}
+
+function runSearch(q) {
+  var dropdown = document.getElementById('mapSearchDropdown');
+  var spinner  = document.getElementById('mapSearchSpinner');
+  var reqId    = ++_searchReqId;
+
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2'
+    + '&q=' + encodeURIComponent(q)
+    + '&limit=5&addressdetails=1&accept-language=id&countrycodes=id';
+
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(results) {
+      if (reqId !== _searchReqId) return;
+      spinner.classList.remove('show');
+      renderSearchResults(results, dropdown);
+    })
+    .catch(function() {
+      if (reqId !== _searchReqId) return;
+      spinner.classList.remove('show');
+      dropdown.innerHTML = '<div class="map-search-empty">Gagal mencari — cek koneksi internet.</div>';
+      dropdown.classList.add('show');
+    });
+}
+
+function renderSearchResults(results, dropdown) {
+  dropdown.innerHTML = '';
+  if (!results || results.length === 0) {
+    dropdown.innerHTML = '<div class="map-search-empty">Lokasi tidak ditemukan. Coba kata kunci lain.</div>';
+    dropdown.classList.add('show');
+    return;
+  }
+  results.forEach(function(item) {
+    var el = document.createElement('div');
+    el.className = 'map-search-item';
+    el.textContent = item.display_name;
+    el.addEventListener('click', function() {
+      var lat = parseFloat(item.lat);
+      var lng = parseFloat(item.lon);
+      leafletMap.setView([lat, lng], 17);
+      leafletMarker.setLatLng([lat, lng]);
+      updateCoordsDisplay(lat, lng);
+      document.getElementById('mapSearchInput').value = '';
+      dropdown.classList.remove('show');
+    });
+    dropdown.appendChild(el);
+  });
+  dropdown.classList.add('show');
+}
+
+function centerToGPS() {
+  if (!navigator.geolocation) {
+    showStatus('fail', 'Browser tidak mendukung GPS.');
+    return;
+  }
+  document.getElementById('mapCoords').textContent = 'Mendeteksi GPS…';
+  document.getElementById('btnGPS').disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude, lng = pos.coords.longitude;
+      leafletMap.setView([lat, lng], 17);
+      leafletMarker.setLatLng([lat, lng]);
+      updateCoordsDisplay(lat, lng);
+      document.getElementById('btnGPS').disabled = false;
+    },
+    function(err) {
+      document.getElementById('mapCoords').textContent =
+        err.code === 1 ? 'Izin GPS ditolak — seret pin manual.' : 'GPS gagal — seret pin manual.';
+      document.getElementById('btnGPS').disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function confirmMapPin() {
+  if (!leafletMarker) return;
+  var pos = leafletMarker.getLatLng();
+  var lat = pos.lat, lng = pos.lng;
+  _pinLat = lat; _pinLng = lng;
+  var url = 'https://maps.google.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6);
+  document.getElementById('mapsLink').value = url;
+
+  // Auto-isi Alamat Detail dari hasil reverse-geocode (seperti Shopee/Grab).
+  // Hanya menimpa jika field kosong atau masih berisi alamat auto sebelumnya,
+  // supaya teks yang diketik manual user tidak hilang.
+  var filledAddr = false;
+  if (_pinAddress) {
+    var alamatEl = document.getElementById('alamat');
+    var cur = (alamatEl.value || '').trim();
+    if (cur === '' || cur === _lastAutoAddr) {
+      alamatEl.value = _pinAddress;
+      _lastAutoAddr = _pinAddress;
+      alamatEl.dispatchEvent(new Event('input', { bubbles: true }));
+      filledAddr = true;
+    }
+  }
+
+  var ongkir = getOngkir();
+  var statusMsg = filledAddr ? '📍 Alamat terisi otomatis dari titik peta'
+                             : '📍 Lokasi dipin: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+  if (ongkir === 0) statusMsg += ' — ✅ Area FREE ONGKIR!';
+  showStatus('success', statusMsg);
+  updateNota();
+  closeMapModal();
+}
+
+function showStatus(type, msg) {
+  var el = document.getElementById('locStatus');
+  el.className = 'location-status ' + type;
+  el.textContent = msg;
+}
+
+// ── Nota ──────────────────────────────────────────────
+// Struct harga produk. Bentuk ini yang nantinya di-fetch dari Firestore
+// (doc config/harga) untuk menggantikan nilai default di bawah.
+var HARGA_CONFIG = {
+  udang: {
+    perKg: 98000,
+    setengahKg: 52500,
+    jasaKupasPerKg: 5000,
+    kupasSetengahSurcharge: 3000 // jasa kupas utk ½kg bukan proporsional, tapi flat +Rp3.000
+  },
+  cumi: {
+    perKg: 102000,
+    setengahKg: 53000
+  },
+  kembung: {
+    perKg: 53000,
+    setengahKg: 27500,
+    jasaBersihPerKg: 5000 // jasa bersihkan ikan (lepas insang & isi perut), min. 1 kg
+  },
+  teriNasi: {
+    pricePerPack: 23000,
+    kgPerPack: 0.25, // Rp23.000 per 250gr
+    hargaSatuKg: 82000 // harga khusus utk pembelian tepat 1 kg
+  },
+  ongkir: {
+    normal: 10000,
+    bogorTangerang: 15000,
+    minKgBogorTangerang: 2,
+    minKgDefault: 0.5
+  }
+};
+
+var HARGA_UDANG, HARGA_SETENGAH, HARGA_KUPAS, KUPAS_SETENGAH_SURCHARGE,
+    HARGA_CUMI, CUMI_SETENGAH, HARGA_KEMBUNG, KEMBUNG_SETENGAH, HARGA_KUPAS_IKAN,
+    HARGA_TERI_NASI_PACK, KG_TERI_NASI_PACK, HARGA_TERI_NASI_SATU_KG,
+    ONGKIR_NORMAL, ONGKIR_BOGOR_TANGERANG, MIN_KG_BOGOR_TANGERANG, MIN_KG_DEFAULT;
+
+// Re-assign semua variabel turunan dari HARGA_CONFIG. Dipanggil saat load awal,
+// dan lagi setelah HARGA_CONFIG di-merge dengan data dari Firestore (config/harga)
+// supaya harga bisa diubah tanpa build ulang.
+function syncHargaVars() {
+  HARGA_UDANG = HARGA_CONFIG.udang.perKg;
+  HARGA_SETENGAH = HARGA_CONFIG.udang.setengahKg;
+  HARGA_KUPAS = HARGA_CONFIG.udang.jasaKupasPerKg;
+  KUPAS_SETENGAH_SURCHARGE = HARGA_CONFIG.udang.kupasSetengahSurcharge;
+  HARGA_CUMI = HARGA_CONFIG.cumi.perKg;
+  CUMI_SETENGAH = HARGA_CONFIG.cumi.setengahKg;
+  HARGA_KEMBUNG = HARGA_CONFIG.kembung.perKg;
+  KEMBUNG_SETENGAH = HARGA_CONFIG.kembung.setengahKg;
+  HARGA_KUPAS_IKAN = HARGA_CONFIG.kembung.jasaBersihPerKg;
+  HARGA_TERI_NASI_PACK = HARGA_CONFIG.teriNasi.pricePerPack;
+  KG_TERI_NASI_PACK = HARGA_CONFIG.teriNasi.kgPerPack;
+  HARGA_TERI_NASI_SATU_KG = HARGA_CONFIG.teriNasi.hargaSatuKg;
+  ONGKIR_NORMAL = HARGA_CONFIG.ongkir.normal;
+  ONGKIR_BOGOR_TANGERANG = HARGA_CONFIG.ongkir.bogorTangerang;
+  MIN_KG_BOGOR_TANGERANG = HARGA_CONFIG.ongkir.minKgBogorTangerang;
+  MIN_KG_DEFAULT = HARGA_CONFIG.ongkir.minKgDefault;
+  updateHargaHints();
+}
+
+// Teks hint harga di tiap kartu produk (bukan cuma kalkulasi nota) ikut nilai
+// HARGA_CONFIG terkini, supaya konsisten begitu harga di-update dari Firestore.
+function updateHargaHints() {
+  var set = function(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set('hint-harga-utuh', fmt(HARGA_UDANG) + '/kg &nbsp;·&nbsp; ½kg ' + fmt(HARGA_SETENGAH));
+  set('hint-harga-kupas', fmt(HARGA_UDANG + HARGA_KUPAS) + '/kg &nbsp;·&nbsp; ½kg ' + fmt(HARGA_SETENGAH + KUPAS_SETENGAH_SURCHARGE));
+  set('hint-harga-cumi', fmt(HARGA_CUMI) + '/kg &nbsp;·&nbsp; ½kg ' + fmt(CUMI_SETENGAH) + ' &nbsp;·&nbsp; Ukuran 10 &nbsp;·&nbsp; min. 1 kg');
+  set('hint-harga-kembung', fmt(HARGA_KEMBUNG) + '/kg &nbsp;·&nbsp; ½kg ' + fmt(KEMBUNG_SETENGAH) + ' &nbsp;·&nbsp; Ukuran 12 &nbsp;·&nbsp; min. 1 kg');
+  set('label-bersih-kembung', 'Bersihkan ikan (lepas insang &amp; isi perut) — +' + fmt(HARGA_KUPAS_IKAN) + '/kg');
+  set('hint-bersih-kembung', 'Gratis untuk 0,5 kg pertama, kelebihannya +' + fmt(HARGA_KUPAS_IKAN) + '/kg');
+  var teriGr = KG_TERI_NASI_PACK * 1000;
+  set('hint-harga-teri-nasi', fmt(HARGA_TERI_NASI_PACK) + '/' + teriGr + 'gr &nbsp;·&nbsp; 1kg ' + fmt(HARGA_TERI_NASI_SATU_KG) + ' &nbsp;·&nbsp; kelipatan ' + teriGr + 'gr');
+}
+syncHargaVars();
+
+// Deep-merge field dari Firestore (config/harga) ke HARGA_CONFIG default,
+// tanpa menghapus field yang tidak ada di dokumen (dokumen bisa partial).
+function deepMergeInto(target, src) {
+  for (var key in src) {
+    if (!Object.prototype.hasOwnProperty.call(src, key)) continue;
+    var val = src[key];
+    if (val && typeof val === 'object' && !Array.isArray(val) && target[key] && typeof target[key] === 'object') {
+      deepMergeInto(target[key], val);
+    } else if (typeof val === 'number') {
+      target[key] = val;
+    }
+  }
+}
+
+function hargaBerharga(id, kg) {
+  if (kg <= 0) return 0;
+  if (id === 'cumi') return kg === 0.5 ? CUMI_SETENGAH : HARGA_CUMI * kg;
+  if (id === 'kembung') return kg === 0.5 ? KEMBUNG_SETENGAH : HARGA_KEMBUNG * kg;
+  if (id === 'teri-nasi') return kg === 1 ? HARGA_TERI_NASI_SATU_KG : (kg / KG_TERI_NASI_PACK) * HARGA_TERI_NASI_PACK;
+  return 0;
+}
+function fmt(n) { return 'Rp' + n.toLocaleString('id-ID'); }
+
+// ── Free ongkir: keyword alamat ───────────────────────
+var FREE_ONGKIR_KEYWORDS = [
+  'kelapa gading', 'kelapagading',
+  'sedayu pgc', 'sedayu city',
+  'harapan indah',
+  'summarecon bekasi', 'summarecon',
+  'jgc', 'jakarta garden city',
+];
+
+// ── Free ongkir: geofencing bounding boxes ────────────
+// Format: { nama, latMin, latMax, lngMin, lngMax }
+var FREE_ONGKIR_ZONES = [
+  { nama: 'Kelapa Gading',      latMin: -6.180, latMax: -6.130, lngMin: 106.880, lngMax: 106.940 },
+  { nama: 'Sedayu PGC',         latMin: -6.140, latMax: -6.090, lngMin: 107.000, lngMax: 107.050 },
+  { nama: 'Harapan Indah',      latMin: -6.230, latMax: -6.170, lngMin: 106.990, lngMax: 107.060 },
+  { nama: 'Summarecon Bekasi',  latMin: -6.260, latMax: -6.200, lngMin: 106.985, lngMax: 107.040 },
+  { nama: 'JGC',                latMin: -6.185, latMax: -6.145, lngMin: 106.945, lngMax: 106.995 },
+];
+
+// ── Bogor / Tangerang: keyword alamat (+Rp15.000, min 2 kg) ──
+var BOGOR_TANGERANG_KEYWORDS = ['bogor', 'tangerang', 'tangsel'];
+
+var _pinLat = null, _pinLng = null;
+var _lastAutoAddr = '';   // alamat terakhir yg diisi otomatis dari peta (utk deteksi edit manual)
+
+// Return area info berdasarkan alamat & pin lokasi.
+// area: 'free' | 'bogor_tangerang' | 'normal'
+function getAreaInfo() {
+  var alamat = (document.getElementById('alamat') && document.getElementById('alamat').value || '').toLowerCase();
+  // 1. cek free ongkir (keyword)
+  for (var i = 0; i < FREE_ONGKIR_KEYWORDS.length; i++) {
+    if (alamat.indexOf(FREE_ONGKIR_KEYWORDS[i]) !== -1) {
+      return { area: 'free', ongkir: 0, minKg: MIN_KG_DEFAULT };
+    }
+  }
+  // 2. cek free ongkir (geofencing pin)
+  if (_pinLat !== null && _pinLng !== null) {
+    for (var j = 0; j < FREE_ONGKIR_ZONES.length; j++) {
+      var z = FREE_ONGKIR_ZONES[j];
+      if (_pinLat >= z.latMin && _pinLat <= z.latMax && _pinLng >= z.lngMin && _pinLng <= z.lngMax) {
+        return { area: 'free', ongkir: 0, minKg: MIN_KG_DEFAULT };
+      }
+    }
+  }
+  // 3. cek Bogor/Tangerang (keyword)
+  for (var k = 0; k < BOGOR_TANGERANG_KEYWORDS.length; k++) {
+    if (alamat.indexOf(BOGOR_TANGERANG_KEYWORDS[k]) !== -1) {
+      return { area: 'bogor_tangerang', ongkir: ONGKIR_BOGOR_TANGERANG, minKg: MIN_KG_BOGOR_TANGERANG };
+    }
+  }
+  return { area: 'normal', ongkir: ONGKIR_NORMAL, minKg: MIN_KG_DEFAULT };
+}
+
+function getOngkir()  { return getAreaInfo().ongkir; }
+function getMinKg()   { return getAreaInfo().minKg; }
+
+// Map metode pembayaran transfer -> nomor rekening tujuan (untuk pesan WhatsApp)
+var REKENING = {
+  'Transfer - Jago': '101962407482 (Bank Jago)',
+  'Transfer - BCA' : '5221698607 (BCA)',
+  'Transfer - OVO' : '085888031940 (OVO)',
+};
+function rekeningInfo(bayar) {
+  return REKENING[bayar] || '';
+}
+
+var _promoAktif = null;
+
+// Cek apakah promo masih memenuhi semua constraint berdasarkan state berat/subtotal saat ini.
+// Mengembalikan { ok: true } atau { ok: false, reason: '...' }.
+function checkPromoEligibility(promo, kgU, kgK, subtotal, kgExtra) {
+  if (!promo) return { ok: true };
+  var totalKg = kgU + kgK + (kgExtra || 0);
+  if (promo.minKg && totalKg < promo.minKg) {
+    return { ok: false, reason: 'minimal total ' + promo.minKg + ' kg (sekarang ' + totalKg + ' kg).' };
+  }
+  if (promo.maxKg && totalKg > promo.maxKg) {
+    return { ok: false, reason: 'maksimal total ' + promo.maxKg + ' kg (sekarang ' + totalKg + ' kg).' };
+  }
+  if (promo.minKgUtuh && kgU < promo.minKgUtuh) {
+    return { ok: false, reason: 'minimal ' + promo.minKgUtuh + ' kg udang utuh (sekarang ' + kgU + ' kg).' };
+  }
+  if (promo.minKgKupas && kgK < promo.minKgKupas) {
+    return { ok: false, reason: 'minimal ' + promo.minKgKupas + ' kg udang kupas (sekarang ' + kgK + ' kg).' };
+  }
+  if (promo.minSubtotal && subtotal < promo.minSubtotal) {
+    return { ok: false, reason: 'minimal subtotal Rp' + Number(promo.minSubtotal).toLocaleString('id-ID') + '.' };
+  }
+  if (promo.maxUses && (promo.usedCount || 0) >= promo.maxUses) {
+    return { ok: false, reason: 'kuota promo sudah habis.' };
+  }
+  return { ok: true };
+}
+
+function updateBeratHint() {
+  var info = getAreaInfo();
+  var hintEl = document.getElementById('hint-berat');
+  var errEl  = document.getElementById('err-berat');
+  if (info.area === 'bogor_tangerang') {
+    if (hintEl) hintEl.textContent = 'Area Bogor / Tangerang — min. total 2 kg.';
+    if (errEl)  errEl.textContent  = 'Khusus area Bogor / Tangerang, total pesanan minimal 2 kg.';
+  } else {
+    if (hintEl) hintEl.textContent = 'Min. total 0,5 kg. Boleh isi salah satu atau keduanya.';
+    if (errEl)  errEl.textContent  = 'Total pesanan minimal 0,5 kg.';
+  }
+}
+
+function updateNota() {
+  updateBeratHint();
+  var kgU   = parseBeratVal(document.getElementById('berat-utuh').value) || 0;
+  var kgK   = parseBeratVal(document.getElementById('berat-kupas').value) || 0;
+  var kgC   = parseBeratVal(document.getElementById('berat-cumi').value) || 0;
+  var kgKb  = parseBeratVal(document.getElementById('berat-kembung').value) || 0;
+  var kgT   = parseBeratVal(document.getElementById('berat-teri-nasi').value) || 0;
+  var totalU = kgU === 0 ? 0 : (kgU === 0.5 ? HARGA_SETENGAH : HARGA_UDANG * kgU);
+  var totalK = kgK === 0 ? 0 : (kgK === 0.5 ? HARGA_SETENGAH + KUPAS_SETENGAH_SURCHARGE : (HARGA_UDANG + HARGA_KUPAS) * kgK);
+  var totalC  = hargaBerharga('cumi', kgC);
+
+  // Bersihkan ikan kembung: gratis 0,5 kg pertama, kelebihannya kena charge
+  var chkBersih = document.getElementById('bersih-kembung');
+  if (chkBersih) {
+    var bersihTersedia = kgKb > 0;
+    chkBersih.disabled = !bersihTersedia;
+    if (!bersihTersedia && chkBersih.checked) chkBersih.checked = false;
+  }
+  var bersihAktif = !!(chkBersih && chkBersih.checked);
+  var totalKb = hargaBerharga('kembung', kgKb) + (bersihAktif ? HARGA_KUPAS_IKAN * Math.max(0, kgKb - 0.5) : 0);
+  var totalT  = hargaBerharga('teri-nasi', kgT);
+  var ongkir = getOngkir();
+
+  // Auto-drop promo bila constraint tidak terpenuhi (mis. berat diturunkan setelah promo diterapkan).
+  if (_promoAktif) {
+    var elig = checkPromoEligibility(_promoAktif, kgU, kgK, totalU + totalK + totalC + totalKb + totalT, kgC + kgKb + kgT);
+    if (!elig.ok) {
+      var droppedKode = _promoAktif.kode;
+      _promoAktif = null;
+      var msgEl = document.getElementById('promo-msg');
+      if (msgEl) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = '⚠️ Promo "' + droppedKode + '" dilepas: ' + elig.reason;
+      }
+    }
+  }
+
+  var diskon = 0;
+  var ongkirFinal = ongkir;
+  if (_promoAktif) {
+    if (_promoAktif.type === 'discount') diskon = parseInt(_promoAktif.value) || 0;
+    else if (_promoAktif.type === 'free_shipping') ongkirFinal = 0;
+    else if (_promoAktif.type === 'free_product') diskon = totalU + totalK + totalC + totalKb + totalT;
+  }
+
+  // Baris udang utuh
+  var rowU = document.getElementById('nota-row-utuh');
+  if (kgU > 0) {
+    rowU.style.display = 'flex';
+    document.getElementById('nota-kg-utuh').textContent = kgU + ' kg';
+    document.getElementById('nota-harga-utuh').textContent = fmt(totalU);
+  } else {
+    rowU.style.display = 'none';
+  }
+
+  // Baris udang kupas
+  var rowK = document.getElementById('nota-row-kupas');
+  if (kgK > 0) {
+    var jenisKupasEl = document.querySelector('input[name="jenisKupas"]:checked');
+    var jenisKupas = jenisKupasEl ? jenisKupasEl.value : 'Peel Tail-On';
+    rowK.style.display = 'flex';
+    document.getElementById('nota-kg-kupas').textContent = kgK + ' kg · ' + jenisKupas;
+    document.getElementById('nota-harga-kupas').textContent = fmt(totalK);
+  } else {
+    rowK.style.display = 'none';
+  }
+
+  // Baris cumi
+  var rowC = document.getElementById('nota-row-cumi');
+  if (kgC > 0) {
+    rowC.style.display = 'flex';
+    document.getElementById('nota-kg-cumi').textContent = kgC + ' kg';
+    document.getElementById('nota-harga-cumi').textContent = fmt(totalC);
+  } else {
+    rowC.style.display = 'none';
+  }
+
+  // Baris ikan kembung
+  var rowKb = document.getElementById('nota-row-kembung');
+  if (kgKb > 0) {
+    rowKb.style.display = 'flex';
+    document.getElementById('nota-kg-kembung').textContent = kgKb + ' kg' + (bersihAktif ? ' · dibersihkan' : '');
+    document.getElementById('nota-harga-kembung').textContent = fmt(totalKb);
+  } else {
+    rowKb.style.display = 'none';
+  }
+
+  // Baris teri nasi
+  var rowT = document.getElementById('nota-row-teri-nasi');
+  if (kgT > 0) {
+    rowT.style.display = 'flex';
+    document.getElementById('nota-kg-teri-nasi').textContent = kgT + ' kg';
+    document.getElementById('nota-harga-teri-nasi').textContent = fmt(totalT);
+  } else {
+    rowT.style.display = 'none';
+  }
+
+  var elOngkir = document.getElementById('nota-ongkir');
+  var promoFreeShipping = _promoAktif && _promoAktif.type === 'free_shipping';
+  if (ongkirFinal === 0 && !promoFreeShipping) {
+    elOngkir.className = 'nota-val nota-free';
+    elOngkir.textContent = 'GRATIS 🎉';
+  } else if (promoFreeShipping) {
+    elOngkir.className = 'nota-val nota-extra';
+    elOngkir.innerHTML = '<s style="color:#9ca3af">+' + fmt(ongkir) + '</s> <span style="color:#16a34a;font-weight:700">GRATIS 🎉</span>';
+  } else {
+    elOngkir.className = 'nota-val nota-extra';
+    elOngkir.textContent = '+' + fmt(ongkir);
+  }
+
+  var rowPromo = document.getElementById('nota-row-promo');
+  if (_promoAktif) {
+    rowPromo.style.display = 'flex';
+    document.getElementById('nota-promo-label').textContent = 'Promo (' + _promoAktif.kode + ')';
+    document.getElementById('nota-promo-val').textContent = '-' + fmt(_promoAktif.type === 'free_shipping' ? ongkir : diskon);
+  } else {
+    rowPromo.style.display = 'none';
+  }
+
+  document.getElementById('nota-total').textContent = fmt(Math.max(0, totalU + totalK + totalC + totalKb + totalT + ongkirFinal - diskon));
+}
+
+// ── Berat stepper ─────────────────────────────────────
+function parseBeratVal(s) {
+  return parseFloat(String(s).replace(',', '.'));
+}
+function roundHalf(n) { return Math.floor(n * 2) / 2; }
+
+function syncBeratUtuh(val) {
+  var next = Math.max(0, roundHalf(val));
+  document.getElementById('berat-utuh').value = next;
+  document.getElementById('btnMinUtuh').disabled = next <= 0;
+  var total = next + (parseBeratVal(document.getElementById('berat-kupas').value) || 0);
+  if (total >= getMinKg()) clearError('berat');
+  updateNota();
+  dispatchField('kgUtuh', next);
+}
+function stepBeratUtuh(delta) {
+  syncBeratUtuh((parseBeratVal(document.getElementById('berat-utuh').value) || 0) + delta);
+}
+function onBeratInputUtuh(el) {
+  var val = parseBeratVal(el.value);
+  document.getElementById('btnMinUtuh').disabled = (val || 0) <= 0;
+  updateNota();
+}
+function onBeratBlurUtuh(el) {
+  syncBeratUtuh(isNaN(parseBeratVal(el.value)) ? 0 : parseBeratVal(el.value));
+}
+
+function syncBeratKupas(val) {
+  var next = Math.max(0, roundHalf(val));
+  document.getElementById('berat-kupas').value = next;
+  document.getElementById('btnMinKupas').disabled = next <= 0;
+  var total = next + (parseBeratVal(document.getElementById('berat-utuh').value) || 0);
+  if (total >= getMinKg()) clearError('berat');
+  updateNota();
+  dispatchField('kgKupas', next);
+}
+function stepBeratKupas(delta) {
+  syncBeratKupas((parseBeratVal(document.getElementById('berat-kupas').value) || 0) + delta);
+}
+function onBeratInputKupas(el) {
+  var val = parseBeratVal(el.value);
+  document.getElementById('btnMinKupas').disabled = (val || 0) <= 0;
+  updateNota();
+}
+function onBeratBlurKupas(el) {
+  syncBeratKupas(isNaN(parseBeratVal(el.value)) ? 0 : parseBeratVal(el.value));
+}
+
+// ── Produk berharga (cumi & ikan kembung) ─────────────
+// Nilai valid: 0 (tidak dipesan) atau >= 0,5 kg (kelipatan 0,5). Minimal pemesanan 0,5 kg.
+var MIN_KG_BERHARGA = 0.5;
+function capId(id) { return id.charAt(0).toUpperCase() + id.slice(1); }
+function normBerharga(val) {
+  var n = Math.max(0, roundHalf(val));
+  if (n > 0 && n < MIN_KG_BERHARGA) n = MIN_KG_BERHARGA;
+  return n;
+}
+function syncBerharga(id, val) {
+  var next = normBerharga(val);
+  document.getElementById('berat-' + id).value = next;
+  document.getElementById('btnMin' + capId(id)).disabled = next <= 0;
+  var kgU = parseBeratVal(document.getElementById('berat-utuh').value) || 0;
+  var kgK = parseBeratVal(document.getElementById('berat-kupas').value) || 0;
+  var other = id === 'cumi'
+    ? (parseBeratVal(document.getElementById('berat-kembung').value) || 0)
+    : (parseBeratVal(document.getElementById('berat-cumi').value) || 0);
+  if (kgU + kgK + next + other + getProdukLainKg() >= getMinKg()) clearError('berat');
+  updateNota();
+  dispatchField('kg' + capId(id), next);
+}
+function stepBerharga(id, delta) {
+  var cur = parseBeratVal(document.getElementById('berat-' + id).value) || 0;
+  var raw = cur + delta;
+  var next;
+  if (raw <= 0) next = 0;                                  // turun dari 1 kg → lepas (0)
+  else if (raw < MIN_KG_BERHARGA) next = delta > 0 ? MIN_KG_BERHARGA : 0; // dari 0 → langsung 1 kg
+  else next = roundHalf(raw);
+  syncBerharga(id, next);
+}
+function onBerhargaInput(id, el) {
+  document.getElementById('btnMin' + capId(id)).disabled = (parseBeratVal(el.value) || 0) <= 0;
+  updateNota();
+}
+function onBerhargaBlur(id, el) {
+  var v = parseBeratVal(el.value);
+  syncBerharga(id, isNaN(v) ? 0 : normBerharga(v));
+}
+
+// ── Bersihkan ikan kembung (lepas insang & isi perut) ──
+function onBersihKembungChange(el) {
+  dispatchField('bersihKembung', el.checked);
+  updateNota();
+}
+
+// ── Jenis kupas udang (Peel Tail-On / Easy Peel) — harga sama ──
+function onJenisKupasChange(el) {
+  dispatchField('jenisKupas', el.value);
+  updateNota();
+}
+
+// ── Teri Nasi (kelipatan 250gr) ───────────────────────────
+var MIN_KG_TERI_NASI = KG_TERI_NASI_PACK;
+function roundQuarter(n) { return Math.round(n * 4) / 4; }
+function normTeriNasi(val) {
+  var n = Math.max(0, roundQuarter(val));
+  if (n > 0 && n < MIN_KG_TERI_NASI) n = MIN_KG_TERI_NASI;
+  return n;
+}
+function syncTeriNasi(val) {
+  var next = normTeriNasi(val);
+  document.getElementById('berat-teri-nasi').value = next;
+  document.getElementById('btnMinTeriNasi').disabled = next <= 0;
+  updateNota();
+  dispatchField('kgTeriNasi', next);
+}
+function stepTeriNasi(delta) {
+  syncTeriNasi((parseBeratVal(document.getElementById('berat-teri-nasi').value) || 0) + delta);
+}
+function onBeratInputTeriNasi(el) {
+  document.getElementById('btnMinTeriNasi').disabled = (parseBeratVal(el.value) || 0) <= 0;
+  updateNota();
+}
+function onBeratBlurTeriNasi(el) {
+  var v = parseBeratVal(el.value);
+  syncTeriNasi(isNaN(v) ? 0 : v);
+}
+
+// ── Produk Lain ───────────────────────────────────────
+function toggleProduk(id) {
+  var active = !_produkAktif[id];
+  _produkAktif[id] = active;
+  var chip = document.getElementById('chip-' + id);
+  var stepper = document.getElementById('stepper-' + id);
+  if (active) { chip.classList.add('active'); stepper.classList.add('show'); }
+  else { chip.classList.remove('active'); stepper.classList.remove('show'); }
+}
+var MIN_KG_PRODUK = 0.5; // minimal pemesanan produk lain (tongkol, nila)
+function stepProduk(id, delta) {
+  var inp = document.getElementById('kg-' + id);
+  var val = parseFloat(inp.value) || MIN_KG_PRODUK;
+  var next = Math.max(MIN_KG_PRODUK, Math.round((val + delta) * 2) / 2);
+  inp.value = next;
+  document.getElementById('btn-' + id + '-min').disabled = next <= MIN_KG_PRODUK;
+}
+function onProdukInput(id, el) {
+  var val = parseFloat(el.value) || 0;
+  document.getElementById('btn-' + id + '-min').disabled = val <= MIN_KG_PRODUK;
+}
+function onProdukBlur(id, el) {
+  var val = parseFloat(el.value);
+  if (isNaN(val) || val < MIN_KG_PRODUK) val = MIN_KG_PRODUK;
+  el.value = Math.round(val * 2) / 2;
+  document.getElementById('btn-' + id + '-min').disabled = el.value <= MIN_KG_PRODUK;
+}
+function tambahProdukCustom() {
+  var inp = document.getElementById('produk-custom');
+  var val = inp.value.trim();
+  if (!val) return;
+  var list = document.getElementById('produk-custom-list');
+  var li = document.createElement('li');
+  li.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:8px;padding:8px 10px;font-size:0.88rem;';
+  li.innerHTML = '<span style="flex:1;color:var(--gray-800)">' + val.replace(/</g,'&lt;') + '</span>'
+    + '<button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--gray-400);font-size:1.1rem;cursor:pointer;padding:0 0 0 8px;line-height:1">×</button>';
+  list.appendChild(li);
+  inp.value = '';
+  inp.focus();
+}
+function getProdukLainLines() {
+  var lines = [];
+  var produkMap = { tongkol: '🐟 Ikan Tongkol', nila: '🐠 Ikan Nila' };
+  Object.keys(produkMap).forEach(function(id) {
+    if (_produkAktif[id]) {
+      var kg = parseFloat(document.getElementById('kg-' + id).value) || 0.5;
+      lines.push(produkMap[id] + ' : ' + kg + ' kg (harga konfirmasi WA)');
+    }
+  });
+  var items = document.getElementById('produk-custom-list').querySelectorAll('li span');
+  items.forEach(function(span) {
+    lines.push('Lainnya    : ' + span.textContent.trim());
+  });
+  return lines;
+}
+
+// ── Char count ───────────────────────────────────────
+function updateCount(el, id) {
+  document.getElementById(id).textContent = el.value.length;
+}
+
+// ── Validation UI helpers ─────────────────────────────
+function showError(fieldId, errId) {
+  var el = document.getElementById(fieldId);
+  if (el) el.classList.add('error');
+  var err = document.getElementById('err-' + errId);
+  if (err) err.classList.add('show');
+}
+function clearError(id) {
+  var el = document.getElementById(id);
+  if (el) { el.classList.remove('error'); el.classList.remove('valid'); }
+  var err = document.getElementById('err-' + id);
+  if (err) err.classList.remove('show');
+}
+
+// ── Submit ────────────────────────────────────────────
+document.getElementById('orderForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var state = arsip.ambil();
+  var ok = true;
+
+  // Step 1: berat / produk
+  if (!isStep1Done(state)) { showError('berat-utuh', 'berat'); ok = false; }
+  // Step 2: nama
+  if (!isStep2Done(state)) { showError('nama', 'nama'); ok = false; }
+  // Step 3: alamat
+  if (!isStep3Done(state)) { showError('alamat', 'alamat'); ok = false; }
+  // Step 4
+  if (!isStep4Done(state)) {
+    var errEl = document.getElementById('err-bayar');
+    if (errEl) errEl.classList.add('show');
+    ok = false;
+  }
+
+  if (!ok) {
+    // scroll to first error
+    var firstErr = document.querySelector('.error, .field-error.show');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  var nama     = state.nama.trim();
+  var penerimaDigits = (document.getElementById('penerima').value || '').replace(/\D/g, '').replace(/^0+/, '');
+  var penerima = penerimaDigits ? '+62' + penerimaDigits : '';
+  var alamat   = state.alamat.trim();
+  var mapsLink = document.getElementById('mapsLink').value.trim();
+  var kgU      = state.kgUtuh  || 0;
+  var kgK      = state.kgKupas || 0;
+  var kgC      = state.kgCumi    || 0;
+  var kgKb     = state.kgKembung || 0;
+  var kgT      = state.kgTeriNasi  || 0;
+  var bersih   = !!document.getElementById('bersih-kembung').checked;
+  var catatan  = state.catatan.trim();
+  var tanggalKirimInp = document.getElementById('tanggalKirim');
+  var minKirim = tanggalKirimMin();
+  if (tanggalKirimInp.value && tanggalKirimInp.value < minKirim) {
+    tanggalKirimInp.value = minKirim;
+  }
+  var tglKirim = formatTanggalKirim(tanggalKirimInp.value);
+  var produkLainLines = getProdukLainLines();
+  var bayar    = state.bayar;
+  var hargaU   = kgU === 0 ? 0 : (kgU === 0.5 ? HARGA_SETENGAH : HARGA_UDANG * kgU);
+  var hargaK   = kgK === 0 ? 0 : (kgK === 0.5 ? HARGA_SETENGAH + KUPAS_SETENGAH_SURCHARGE : (HARGA_UDANG + HARGA_KUPAS) * kgK);
+  var hargaC   = hargaBerharga('cumi', kgC);
+  var hargaKb  = hargaBerharga('kembung', kgKb) + (bersih ? HARGA_KUPAS_IKAN * Math.max(0, kgKb - 0.5) : 0);
+  var hargaT   = hargaBerharga('teri-nasi', kgT);
+  var ongkir   = getOngkir();
+  var diskon   = 0;
+  var ongkirFinal = ongkir;
+  if (_promoAktif) {
+    if (_promoAktif.type === 'discount') diskon = parseInt(_promoAktif.value) || 0;
+    else if (_promoAktif.type === 'free_shipping') ongkirFinal = 0;
+    else if (_promoAktif.type === 'free_product') diskon = hargaU + hargaK + hargaC + hargaKb + hargaT;
+  }
+  var total = Math.max(0, hargaU + hargaK + hargaC + hargaKb + hargaT + ongkirFinal - diskon);
+
+  var lines = [
+    '*Form Pesanan Udang Segar*',
+    '',
+    'Nama       : ' + nama,
+    penerima ? 'Penerima   : ' + penerima : null,
+    'Alamat     : ' + alamat,
+    mapsLink ? 'Pin Lokasi : ' + mapsLink : null,
+    '',
+    kgU > 0 ? 'Udang utuh : ' + kgU + ' kg — ' + fmt(hargaU) : null,
+    kgK > 0 ? 'Udang kupas: ' + kgK + ' kg (' + state.jenisKupas + ') — ' + fmt(hargaK) : null,
+    kgC > 0 ? 'Cumi       : ' + kgC + ' kg — ' + fmt(hargaC) : null,
+    kgKb > 0 ? 'Ikan kembung: ' + kgKb + ' kg' + (bersih ? ' (dibersihkan)' : '') + ' — ' + fmt(hargaKb) : null,
+    kgT > 0 ? 'Teri Nasi  : ' + kgT + ' kg — ' + fmt(hargaT) : null,
+  ].concat(produkLainLines).concat([
+    catatan ? 'Catatan    : ' + catatan : null,
+    tglKirim ? 'Tanggal kirim: ' + tglKirim : 'Tanggal kirim: Besok (H+1)',
+    'Pesanan akan dikirim H+1 atau lebih',
+    '',
+    ongkirFinal === 0 ? 'Ongkir     : GRATIS ✅' : 'Ongkir     : +' + fmt(ongkir),
+    _promoAktif ? 'Promo (' + _promoAktif.kode + '): -' + fmt(diskon || ongkir) : null,
+    '*Total     : ' + fmt(total) + '*',
+    '',
+    'Pembayaran : ' + bayar,
+    rekeningInfo(bayar) ? 'Rekening   : ' + rekeningInfo(bayar) : null,
+  ]).filter(function(l) { return l !== null; }).join('\n');
+
+  if (typeof gtag === 'function') {
+    gtag('event', 'klik_pesan', {
+      'event_category': 'konversi',
+      'metode_bayar': bayar,
+      'total_kg': kgU + kgK,
+    });
+  }
+  if (_promoAktif && _promoAktif.maxUses && typeof window.incrementPromoUsage === 'function') {
+    window.incrementPromoUsage(_promoAktif.kode);
+  }
+  window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines), '_blank');
+});
+</script>
+
+<script>
+// ── Reminder feature ──────────────────────────────────
+var REMINDER_KEY = 'udang_reminder';
+
+function reminderInitDatetime() {
+  var inp = document.getElementById('reminderDatetime');
+  var hint = document.getElementById('reminderDtHint');
+  var now = new Date();
+  var max = new Date(now); max.setMonth(max.getMonth() + 1);
+
+  // default: besok jam 09:00
+  function toLocal(d) {
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+
+  var def = new Date(now); def.setDate(def.getDate() + 1);
+  if (def > max) def = max;
+
+  inp.min = toLocal(new Date(now.getTime() + 86400000));
+  inp.max = toLocal(max);
+  inp.value = toLocal(def);
+
+  function updateHint() {
+    if (!inp.value) { hint.textContent = ''; return; }
+    var sel = new Date(inp.value + 'T00:00:00');
+    var diff = sel - now;
+    if (diff <= 0) { hint.style.color = '#ef4444'; hint.textContent = 'Pilih tanggal yang akan datang.'; return; }
+    hint.style.color = '';
+    var days = Math.floor(diff / 86400000);
+    hint.textContent = days === 1 ? 'Diingatkan besok.' : 'Diingatkan dalam ' + days + ' hari.';
+  }
+  inp.addEventListener('input', updateHint);
+  updateHint();
+}
+
+function buildMonthOptions() { reminderInitDatetime(); }
+
+// ── Tanggal pengiriman (form pesanan utama) ──
+function initTanggalKirim() {
+  var inp = document.getElementById('tanggalKirim');
+  if (!inp) return;
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var besok = new Date(Date.now() + 86400000);
+  var besokStr = besok.getFullYear()+'-'+pad(besok.getMonth()+1)+'-'+pad(besok.getDate());
+  inp.min = besokStr;
+  inp.value = besokStr; // auto-isi H+1
+}
+
+function tanggalKirimMin() {
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var besok = new Date(Date.now() + 86400000);
+  return besok.getFullYear()+'-'+pad(besok.getMonth()+1)+'-'+pad(besok.getDate());
+}
+
+function formatTanggalKirim(val) {
+  if (!val) return '';
+  var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var d = new Date(val + 'T00:00:00');
+  if (isNaN(d)) return val;
+  return hari[d.getDay()] + ', ' + d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+}
+document.addEventListener('DOMContentLoaded', initTanggalKirim);
+
+function simpanUntukNanti() {
+  var state = arsip.ambil();
+  var nama     = state.nama ? state.nama.trim() : '';
+  var alamat   = state.alamat ? state.alamat.trim() : '';
+  var mapsLink = document.getElementById('mapsLink').value.trim();
+  var berat    = state.berat;
+  var kupas    = state.kupas;
+  var catatan  = state.catatan ? state.catatan.trim() : '';
+  var bayar    = state.bayar;
+  var kondisi  = kupas === 'Dikupas' ? ('Dikupas (+' + fmt(HARGA_KUPAS) + '/kg)') : 'Tidak dikupas';
+  var hargaU   = berat === 0.5 ? HARGA_SETENGAH : HARGA_UDANG * berat;
+  var hargaK   = kupas === 'Dikupas' ? (berat === 0.5 ? KUPAS_SETENGAH_SURCHARGE : HARGA_KUPAS * berat) : 0;
+  var ongkir   = getOngkir();
+  var diskon   = 0;
+  var ongkirFinal = ongkir;
+  if (_promoAktif) {
+    if (_promoAktif.type === 'discount') diskon = parseInt(_promoAktif.value) || 0;
+    else if (_promoAktif.type === 'free_shipping') ongkirFinal = 0;
+    else if (_promoAktif.type === 'free_product') diskon = hargaU + hargaK;
+  }
+  var total = Math.max(0, hargaU + hargaK + ongkirFinal - diskon);
+
+  var lines = [
+    '*Simpan untuk Nanti – Udang Segar* 🦐',
+    '',
+    nama    ? 'Nama       : ' + nama    : null,
+    alamat  ? 'Alamat     : ' + alamat  : null,
+    mapsLink ? 'Pin Lokasi : ' + mapsLink : null,
+    '',
+    berat   ? 'Pesanan    : Udang ' + berat + ' kg' : null,
+    kupas   ? 'Kondisi    : ' + kondisi : null,
+    catatan ? 'Catatan    : ' + catatan : null,
+    '',
+    berat   ? 'Harga udang: ' + fmt(hargaU) : null,
+    kupas === 'Dikupas' ? 'Jasa kupas : +' + fmt(hargaK) : null,
+    berat   ? (ongkirFinal === 0 ? 'Ongkir     : GRATIS ✅' : 'Ongkir     : +' + fmt(ongkir)) : null,
+    _promoAktif ? 'Promo (' + _promoAktif.kode + '): -' + fmt(diskon || ongkir) : null,
+    berat   ? '*Total     : ' + fmt(total) + '*' : null,
+    '',
+    bayar   ? 'Pembayaran : ' + bayar : null,
+    rekeningInfo(bayar) ? 'Rekening   : ' + rekeningInfo(bayar) : null,
+    '',
+    '_Saya tertarik tapi belum bisa pesan sekarang. Boleh diingatkan nanti?_',
+  ].filter(function(l){ return l !== null; }).join('\n');
+
+  if (typeof gtag === 'function') {
+    gtag('event', 'klik_simpan_nanti', { 'event_category': 'konversi' });
+  }
+  window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines), '_blank');
+}
+
+function toggleReminderCard() {
+  buildMonthOptions();
+  document.getElementById('reminderSavedMsg').classList.remove('show');
+  var saveBtn = document.querySelector('.btn-save-reminder');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = ''; }
+  document.getElementById('reminderModal').classList.add('show');
+  document.getElementById('btnReminderToggle').classList.add('active');
+}
+
+function closeReminderModal() {
+  document.getElementById('reminderModal').classList.remove('show');
+  document.getElementById('btnReminderToggle').classList.remove('active');
+}
+
+function onReminderBackdropClick(e) {
+  if (e.target === document.getElementById('reminderModal')) closeReminderModal();
+}
+
+function saveReminder() {
+  var inp = document.getElementById('reminderDatetime');
+  if (!inp.value) return;
+  var target = new Date(inp.value + 'T00:00:00');
+  if (target <= new Date()) {
+    document.getElementById('reminderDtHint').textContent = 'Pilih tanggal yang akan datang.';
+    document.getElementById('reminderDtHint').style.color = '#ef4444';
+    return;
+  }
+
+  var state = arsip.ambil();
+  var nama     = state.nama ? state.nama.trim() : '';
+  var alamat   = state.alamat ? state.alamat.trim() : '';
+  var mapsLink = document.getElementById('mapsLink').value.trim();
+  var berat    = state.berat;
+  var kupas    = state.kupas;
+  var catatan  = state.catatan ? state.catatan.trim() : '';
+  var bayar    = state.bayar;
+  var kondisi  = kupas === 'Dikupas' ? ('Dikupas (+' + fmt(HARGA_KUPAS) + '/kg)') : 'Tidak dikupas';
+  var hargaU   = berat === 0.5 ? HARGA_SETENGAH : HARGA_UDANG * berat;
+  var hargaK   = kupas === 'Dikupas' ? (berat === 0.5 ? KUPAS_SETENGAH_SURCHARGE : HARGA_KUPAS * berat) : 0;
+  var ongkir   = getOngkir();
+  var diskon   = 0;
+  var ongkirFinal = ongkir;
+  if (_promoAktif) {
+    if (_promoAktif.type === 'discount') diskon = parseInt(_promoAktif.value) || 0;
+    else if (_promoAktif.type === 'free_shipping') ongkirFinal = 0;
+    else if (_promoAktif.type === 'free_product') diskon = hargaU + hargaK;
+  }
+  var total = Math.max(0, hargaU + hargaK + ongkirFinal - diskon);
+
+  var HARI  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var tgl = HARI[target.getDay()] + ', ' + target.getDate() + ' ' + BULAN[target.getMonth()] + ' ' + target.getFullYear();
+
+  var lines = [
+    '*Pesan Nanti – Udang Segar*',
+    '',
+    nama   ? 'Nama       : ' + nama   : null,
+    alamat ? 'Alamat     : ' + alamat : null,
+    mapsLink ? 'Pin Lokasi : ' + mapsLink : null,
+    '',
+    berat  ? 'Pesanan    : Udang ' + berat + ' kg' : null,
+    kupas  ? 'Kondisi    : ' + kondisi : null,
+    catatan ? 'Catatan    : ' + catatan : null,
+    '',
+    berat  ? 'Harga udang: ' + fmt(hargaU) : null,
+    kupas === 'Dikupas' ? 'Jasa kupas : +' + fmt(hargaK) : null,
+    berat  ? (ongkirFinal === 0 ? 'Ongkir     : GRATIS ✅' : 'Ongkir     : +' + fmt(ongkir)) : null,
+    _promoAktif ? 'Promo (' + _promoAktif.kode + '): -' + fmt(diskon || ongkir) : null,
+    berat  ? '*Total     : ' + fmt(total) + '*' : null,
+    '',
+    bayar  ? 'Pembayaran : ' + bayar : null,
+    rekeningInfo(bayar) ? 'Rekening   : ' + rekeningInfo(bayar) : null,
+    '',
+    '📅 Tanggal pesan: ' + tgl,
+  ].filter(function(l){ return l !== null; }).join('\n');
+
+  localStorage.setItem(REMINDER_KEY, JSON.stringify({ nama: nama, reminderDatetime: inp.value, savedAt: new Date().toISOString() }));
+  window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines), '_blank');
+
+  document.getElementById('reminderSavedMsg').classList.add('show');
+  var btn = document.querySelector('.btn-save-reminder');
+  btn.disabled = true; btn.style.opacity = '0.5';
+}
+
+function checkReminder() {
+  var raw = localStorage.getItem(REMINDER_KEY);
+  if (!raw) return;
+  try {
+    var data = JSON.parse(raw);
+    var remind = new Date(data.reminderDatetime || data.reminderDate);
+    if (new Date() >= remind) {
+      var body = document.getElementById('reminderBannerBody');
+      body.textContent = data.nama
+        ? 'Halo ' + data.nama + '! Sudah waktunya pesan udang segar lagi. Yuk langsung pesan sekarang!'
+        : 'Kamu punya pengingat untuk memesan. Yuk langsung pesan sekarang!';
+      document.getElementById('reminderBanner').classList.add('show');
+    }
+  } catch(e) {}
+}
+
+function reminderOpenWA() {
+  var raw = localStorage.getItem(REMINDER_KEY);
+  var nama = '';
+  try { nama = JSON.parse(raw).nama || ''; } catch(e) {}
+  var msg = nama
+    ? 'Halo, saya ' + nama + ' mau pesan udang segar lagi 🦐'
+    : 'Halo, saya mau pesan udang segar lagi 🦐';
+  if (typeof gtag === 'function') {
+    gtag('event', 'klik_pesan_reminder', { 'event_category': 'konversi' });
+  }
+  window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
+  reminderDismiss();
+}
+
+function reminderDismiss() {
+  localStorage.removeItem(REMINDER_KEY);
+  document.getElementById('reminderBanner').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  checkReminder();
+  document.getElementById('reminderMonth') && document.getElementById('reminderMonth').addEventListener('change', filterWeekOptions);
+  updateNota();
+});
+
+// Preload peta saat browser idle SETELAH halaman selesai dimuat — prioritas rendah
+// supaya tidak menyaingi render/interaktivitas awal (skor performa tetap terjaga),
+// tapi saat user buka modal peta sudah terasa instan.
+window.addEventListener('load', function() {
+  var warm = function() { if (typeof loadLeaflet === 'function') loadLeaflet().catch(function() {}); };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(warm, { timeout: 5000 });
+  } else {
+    setTimeout(warm, 3000);
+  }
+});
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCqRVrKFRa4JCa96uMaHqde7EgAukozs3o",
+    authDomain: "atminujangudang.firebaseapp.com",
+    projectId: "atminujangudang",
+    storageBucket: "atminujangudang.firebasestorage.app",
+    messagingSenderId: "703236937411",
+    appId: "1:703236937411:web:4e3f87a5d39126a8a2f476"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Fetch harga terbaru dari Firestore (config/harga) secara non-blocking. Harga
+  // default hardcoded (HARGA_CONFIG) dipakai instan saat page load; begitu data
+  // Firestore datang, HARGA_CONFIG di-merge lalu nota di-refresh diam-diam. Kalau
+  // fetch gagal (offline, doc belum ada, rules, dsb) cukup dibiarkan — default tetap dipakai.
+  getDoc(doc(db, 'config', 'harga')).then(function(snap) {
+    if (!snap.exists()) return;
+    deepMergeInto(HARGA_CONFIG, snap.data());
+    syncHargaVars();
+    if (typeof updateNota === 'function') updateNota();
+  }).catch(function(e) {
+    console.warn('Gagal fetch harga dari Firestore, pakai default:', e);
+  });
+
+  // Fire-and-forget counter bump dipanggil saat order disubmit. Best-effort: kalau
+  // gagal (offline, rules, dsb) tidak menahan flow ke WhatsApp.
+  window.incrementPromoUsage = function(kode) {
+    if (!kode) return;
+    updateDoc(doc(db, 'promo_codes', kode), { usedCount: increment(1) })
+      .catch(function(e) { console.warn('Gagal increment usedCount promo:', e); });
+  };
+
+  window.applyPromo = async function() {
+    var kode  = document.getElementById('kode-promo').value.trim().toUpperCase();
+    var msgEl = document.getElementById('promo-msg');
+
+    if (!kode) {
+      msgEl.style.color = '#dc2626';
+      msgEl.textContent = 'Masukkan kode promo dulu.';
+      return;
+    }
+
+    msgEl.style.color = '#6b7280';
+    msgEl.textContent = 'Mengecek kode...';
+
+    try {
+      var snap = await getDoc(doc(db, 'promo_codes', kode));
+
+      if (!snap.exists()) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = 'Kode promo tidak ditemukan.';
+        _promoAktif = null;
+        updateNota();
+        return;
+      }
+
+      var data = snap.data();
+
+      if (!data.active) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = 'Kode promo sudah tidak aktif.';
+        _promoAktif = null;
+        updateNota();
+        return;
+      }
+
+      var now     = new Date();
+      var expires = data.expires.toDate();
+      if (now > expires) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = 'Kode promo sudah kedaluwarsa.';
+        _promoAktif = null;
+        updateNota();
+        return;
+      }
+
+      var promoCandidate = {
+        kode: kode, type: data.type, value: data.value,
+        minKg:       Number(data.minKg)       || 0,
+        maxKg:       Number(data.maxKg)       || 0,
+        minKgUtuh:   Number(data.minKgUtuh)   || 0,
+        minKgKupas:  Number(data.minKgKupas)  || 0,
+        minSubtotal: Number(data.minSubtotal) || 0,
+        maxUses:     Number(data.maxUses)     || 0,
+        usedCount:   Number(data.usedCount)   || 0
+      };
+
+      // Validasi constraint terhadap state berat/subtotal saat ini.
+      var kgU = parseBeratVal(document.getElementById('berat-utuh').value)  || 0;
+      var kgK = parseBeratVal(document.getElementById('berat-kupas').value) || 0;
+      var kgC = parseBeratVal(document.getElementById('berat-cumi').value)    || 0;
+      var kgKb = parseBeratVal(document.getElementById('berat-kembung').value) || 0;
+      var subU = kgU === 0 ? 0 : (kgU === 0.5 ? HARGA_SETENGAH : HARGA_UDANG * kgU);
+      var subK = kgK === 0 ? 0 : (kgK === 0.5 ? HARGA_SETENGAH + KUPAS_SETENGAH_SURCHARGE : (HARGA_UDANG + HARGA_KUPAS) * kgK);
+      var subC = hargaBerharga('cumi', kgC);
+      var subKb = hargaBerharga('kembung', kgKb);
+      var elig = checkPromoEligibility(promoCandidate, kgU, kgK, subU + subK + subC + subKb, kgC + kgKb);
+      if (!elig.ok) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = '❌ Kode butuh ' + elig.reason;
+        _promoAktif = null;
+        updateNota();
+        return;
+      }
+
+      _promoAktif = promoCandidate;
+      updateNota();
+
+      if (data.type === 'discount') {
+        msgEl.style.color = '#16a34a';
+        msgEl.textContent = '✅ Promo aktif! Potongan Rp' + parseInt(data.value).toLocaleString('id-ID') + ' berhasil diterapkan.';
+      } else if (data.type === 'free_product') {
+        msgEl.style.color = '#16a34a';
+        msgEl.textContent = '✅ Promo aktif! Produk gratis' + (promoCandidate.maxKg ? ' (maks. ' + promoCandidate.maxKg + ' kg)' : '') + ' berhasil diterapkan.';
+      } else {
+        msgEl.style.color = '#16a34a';
+        msgEl.textContent = '✅ Promo aktif! Ongkir gratis berhasil diterapkan.';
+      }
+
+    } catch (e) {
+      console.error('Firebase promo error:', e);
+      msgEl.style.color = '#dc2626';
+      msgEl.textContent = 'Gagal: ' + e.message;
+    }
+  };
+</script>
+<!-- ── Fixed bottom action dock ── -->
+<div class="bottom-dock">
+  <!-- FAQ SEO Drawer -->
+  <div id="faq-seo-drawer" class="faq-seo-container">
+    <div class="faq-seo-title">Pertanyaan Umum (FAQ) - Udang Segar Tambak Tegal</div>
+    <div class="faq-seo-item">
+      <div class="faq-seo-question">Q: Di mana saya bisa membeli udang segar tambak Tegal asli di Jabodetabek?</div>
+      <div class="faq-seo-answer">A: Kamu bisa memesannya langsung di sini! Kami menyediakan udang segar tambak Tegal asli yang dikirim langsung ke wilayah Jakarta, Depok, dan Bekasi (Jadebek).</div>
+    </div>
+    <div class="faq-seo-item">
+      <div class="faq-seo-question">Q: Apakah udang yang dikirim adalah udang beku (freezer)?</div>
+      <div class="faq-seo-answer">A: Tidak, kami berkomitmen menyajikan kualitas terbaik dengan sistem <strong>non-freezer (segar tanpa dibekukan / no freezer)</strong>, sehingga rasa manis alami dan tekstur udang tetap terjaga sempurna saat tiba di kulkas kamu.</div>
+    </div>
+    <div class="faq-seo-item">
+      <div class="faq-seo-question">Q: Bagaimana dengan biaya pengiriman ke wilayah Jakarta, Depok, dan Bekasi?</div>
+      <div class="faq-seo-answer">A: Kami memberikan penawaran istimewa berupa layanan <strong>gratis ongkir (free ongkir) langsung antar</strong> untuk seluruh area <strong>Sunter, Kelapa Gading, JGC, Sedayu, PGC, Harapan Indah, Pulogebang, Summarecon Bekasi</strong> tanpa biaya tambahan.</div>
+    </div>
+    <div class="faq-seo-item">
+      <div class="faq-seo-question">Q: Bagaimana cara memesan udang segar ini?</div>
+      <div class="faq-seo-answer">A: Sangat mudah! Kamu cukup mengisi form pemesanan udang segar di halaman web ini, lalu konfirmasi pesanan kamu akan dikirim langsung via WhatsApp.</div>
+    </div>
+  </div>
+  
+  <div class="tanggal-kirim-bar" style="max-width:560px;margin:0 auto;padding:8px 12px;background:white;border-top:1px solid var(--gray-200)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <label class="tk-label" for="tanggalKirim">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+        Tanggal Pengiriman
+      </label>
+      <input type="date" id="tanggalKirim" name="tanggalKirim" class="tk-input">
+    </div>
+    <p class="maps-hint" id="tanggalKirimHint" style="margin-top:4px">Ganti jika mau dijadwalkan untuk tanggal lain.</p>
+  </div>
+  <div class="submit-bar">
+    <button type="button" class="btn-reminder-toggle" id="btnReminderToggle" onclick="simpanUntukNanti()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+      Chat Admin
+    </button>
+    <button type="submit" form="orderForm" class="btn-submit" style="flex:1;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+      </svg>
+      Pesan
+    </button>
+  </div>
+  <div class="bottom-navbar">Manufactured by <span>adipresto</span> — <span class="dreamlebs-btn" onclick="toggleFaqSeo(event)">dreamlebs</span></div>
+</div>
+
+<script>
+  function toggleFaqSeo(event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    var drawer = document.getElementById('faq-seo-drawer');
+    drawer.classList.toggle('open');
+    if (drawer.classList.contains('open')) {
+      drawer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }
+
+  // Tutup FAQ jika diklik di luar area FAQ drawer dan tombol pemicu
+  document.addEventListener('click', function(event) {
+    var drawer = document.getElementById('faq-seo-drawer');
+    var trigger = document.querySelector('.dreamlebs-btn');
+    if (drawer && drawer.classList.contains('open')) {
+      if (!drawer.contains(event.target) && !trigger.contains(event.target)) {
+        drawer.classList.remove('open');
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
