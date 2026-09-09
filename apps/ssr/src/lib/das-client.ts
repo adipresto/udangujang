@@ -39,6 +39,14 @@ import {
   type ListAlamatByKastamerResponse,
   type ListKastamerResponse,
 } from "@udangujang/proto/src/gen/udangujang/kastamer/v1/kastamer";
+import {
+  TransaksiServiceClient,
+  type CreateTransaksiResponse,
+  type ListTransaksiResponse,
+  type ReorderTransaksiResponse,
+  type Transaksi,
+  type UpdateTransaksiResponse,
+} from "@udangujang/proto/src/gen/udangujang/transaksi/v1/transaksi";
 
 const DAS_ADDR = process.env.DAS_GRPC_ADDR ?? "localhost:50051";
 
@@ -316,6 +324,97 @@ export function listAlamatByKastamer(kastamerId: string): Promise<ListAlamatByKa
   return new Promise((resolve, reject) => {
     const client = getAlamatClient();
     client.listAlamatByKastamer({ kastamerId }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+function getTransaksiClient(): TransaksiServiceClient {
+  return new TransaksiServiceClient(DAS_ADDR, credentials.createInsecure());
+}
+
+export type { Transaksi };
+
+export interface ListTransaksiInput {
+  tanggalDari?: string;
+  tanggalSampai?: string;
+  kategori?: string;
+  limit?: number;
+}
+
+export function listTransaksi(input: ListTransaksiInput = {}): Promise<ListTransaksiResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getTransaksiClient();
+    client.listTransaksi(
+      {
+        tanggalDari: input.tanggalDari ?? "",
+        tanggalSampai: input.tanggalSampai ?? "",
+        kategori: input.kategori ?? "",
+        limit: input.limit ?? 0,
+      },
+      (err, resp) => {
+        client.close();
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(resp);
+      },
+    );
+  });
+}
+
+export function createTransaksi(transaksi: Transaksi): Promise<CreateTransaksiResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getTransaksiClient();
+    client.createTransaksi({ transaksi }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function updateTransaksi(id: string, transaksi: Transaksi): Promise<UpdateTransaksiResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getTransaksiClient();
+    client.updateTransaksi({ id, transaksi }, (err, resp) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
+export function deleteTransaksi(id: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const client = getTransaksiClient();
+    client.deleteTransaksi({ id }, (err) => {
+      client.close();
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export function reorderTransaksi(tanggal: string, ids: string[]): Promise<ReorderTransaksiResponse> {
+  return new Promise((resolve, reject) => {
+    const client = getTransaksiClient();
+    client.reorderTransaksi({ tanggal, ids }, (err, resp) => {
       client.close();
       if (err) {
         reject(err);

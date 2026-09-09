@@ -129,6 +129,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/promo" style={linkStyle(pathname === "/admin/promo")}>
             Promo
           </Link>
+          <Link href="/admin/transaksi" style={linkStyle(pathname === "/admin/transaksi")}>
+            Transaksi
+          </Link>
           <Link href="/pesan" style={linkStyle(false)}>
             Form Pemesanan
           </Link>

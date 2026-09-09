@@ -24,6 +24,7 @@ const (
 	CollectionPesanan   = "pesanan"
 	CollectionPromoCode = "promo_codes"
 	CollectionConfig    = "config"
+	CollectionTransaksi = "transaksi"
 
 	// CollectionStatusLog is a subcollection under each pesanan doc
 	// (pesanan/{id}/statusLog) — see docs/migration-context.md § pesanan.

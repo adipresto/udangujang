@@ -365,3 +365,123 @@ func (f *fakePromoRepo) SetPromoActive(_ context.Context, code string, active bo
 	f.byCode[docID] = p
 	return p, nil
 }
+
+// fakeTransaksiRepo is an in-memory domain.TransaksiRepository used to
+// unit test TransaksiServer without a Firestore connection.
+type fakeTransaksiRepo struct {
+	mu     sync.Mutex
+	byID   map[string]domain.Transaksi
+	nextID int
+}
+
+func newFakeTransaksiRepo() *fakeTransaksiRepo {
+	return &fakeTransaksiRepo{byID: map[string]domain.Transaksi{}}
+}
+
+func (f *fakeTransaksiRepo) Create(_ context.Context, t domain.Transaksi) (domain.Transaksi, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	count := 0
+	for _, existing := range f.byID {
+		if existing.Tanggal == t.Tanggal {
+			count++
+		}
+	}
+	f.nextID++
+	t.ID = fmt.Sprintf("trx-%d", f.nextID)
+	t.Urutan = count
+	now := time.Now()
+	t.CreatedAt = now
+	t.UpdatedAt = now
+	f.byID[t.ID] = t
+	return t, nil
+}
+
+func (f *fakeTransaksiRepo) GetByID(_ context.Context, id string) (domain.Transaksi, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	t, ok := f.byID[id]
+	if !ok {
+		return domain.Transaksi{}, domain.ErrNotFound
+	}
+	return t, nil
+}
+
+func (f *fakeTransaksiRepo) List(_ context.Context, filter domain.TransaksiFilter) ([]domain.Transaksi, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []domain.Transaksi
+	for _, t := range f.byID {
+		if filter.TanggalDari != "" && t.Tanggal < filter.TanggalDari {
+			continue
+		}
+		if filter.TanggalSampai != "" && t.Tanggal > filter.TanggalSampai {
+			continue
+		}
+		if filter.Kategori != "" && t.Kategori != filter.Kategori {
+			continue
+		}
+		out = append(out, t)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Tanggal != out[j].Tanggal {
+			return out[i].Tanggal < out[j].Tanggal
+		}
+		return out[i].Urutan < out[j].Urutan
+	})
+	if filter.Limit > 0 && len(out) > filter.Limit {
+		out = out[:filter.Limit]
+	}
+	return out, nil
+}
+
+func (f *fakeTransaksiRepo) Update(_ context.Context, t domain.Transaksi) (domain.Transaksi, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	existing, ok := f.byID[t.ID]
+	if !ok {
+		return domain.Transaksi{}, domain.ErrNotFound
+	}
+	t.Urutan = existing.Urutan
+	t.CreatedAt = existing.CreatedAt
+	t.UpdatedAt = time.Now()
+	f.byID[t.ID] = t
+	return t, nil
+}
+
+func (f *fakeTransaksiRepo) Delete(_ context.Context, id string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.byID, id)
+	return nil
+}
+
+func (f *fakeTransaksiRepo) Reorder(_ context.Context, tanggal string, ids []string) ([]domain.Transaksi, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	group := map[string]domain.Transaksi{}
+	for _, t := range f.byID {
+		if t.Tanggal == tanggal {
+			group[t.ID] = t
+		}
+	}
+	if len(ids) != len(group) {
+		return nil, domain.ErrReorderMismatch
+	}
+	for _, id := range ids {
+		if _, ok := group[id]; !ok {
+			return nil, domain.ErrReorderMismatch
+		}
+	}
+
+	now := time.Now()
+	out := make([]domain.Transaksi, 0, len(ids))
+	for i, id := range ids {
+		t := group[id]
+		t.Urutan = i
+		t.UpdatedAt = now
+		f.byID[id] = t
+		out = append(out, t)
+	}
+	return out, nil
+}

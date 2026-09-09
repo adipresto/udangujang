@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package udangujang.transaksi.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "udangujang/das/internal/pb/udangujang/transaksi/v1;transaksiv1";
+
+// TransaksiService is a standalone bookkeeping ledger — CRUD only, not
+// linked to Pesanan/Kastamer. Mirrors the pre-merge dashboard's transaksi
+// collection (reference/udang-dashboard/index.html: seed ~1610-1614,
+// saveTrx ~4678-4709, reorder ~4711-4751).
+service TransaksiService {
+  rpc CreateTransaksi(CreateTransaksiRequest) returns (CreateTransaksiResponse);
+  rpc GetTransaksi(GetTransaksiRequest) returns (GetTransaksiResponse);
+  rpc ListTransaksi(ListTransaksiRequest) returns (ListTransaksiResponse);
+  rpc UpdateTransaksi(UpdateTransaksiRequest) returns (UpdateTransaksiResponse);
+  rpc DeleteTransaksi(DeleteTransaksiRequest) returns (DeleteTransaksiResponse);
+  rpc ReorderTransaksi(ReorderTransaksiRequest) returns (ReorderTransaksiResponse);
+}
+
+// Transaksi mirrors a transaksi doc. kg/harga_per_kg are only set when
+// kategori == "belanja" (saveTrx(), reference/udang-dashboard/index.html
+// lines ~4681-4694) — enforced server-side, not just by UI convention.
+// urutan is assigned by CreateTransaksi/ReorderTransaksi, never by the
+// caller directly.
+message Transaksi {
+  string id = 1;
+  string tanggal = 2; // YYYY-MM-DD
+  string keterangan = 3;
+  string kategori = 4; // belanja | aset | prive | penyesuaian
+  optional double kg = 5;
+  optional double harga_per_kg = 6;
+  int64 jumlah = 7;
+  int32 urutan = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// CreateTransaksiRequest.transaksi.id/urutan/created_at/updated_at are
+// ignored — the server assigns them (urutan = count of existing rows dated
+// the same tanggal, matching saveTrx()'s ADD_TRANSAKSI branch).
+message CreateTransaksiRequest {
+  Transaksi transaksi = 1;
+}
+
+message CreateTransaksiResponse {
+  Transaksi transaksi = 1;
+}
+
+message GetTransaksiRequest {
+  string id = 1;
+}
+
+message GetTransaksiResponse {
+  Transaksi transaksi = 1;
+}
+
+message ListTransaksiRequest {
+  string tanggal_dari = 1;
+  string tanggal_sampai = 2;
+  string kategori = 3;
+  int32 limit = 4;
+}
+
+message ListTransaksiResponse {
+  repeated Transaksi transaksi = 1;
+}
+
+// UpdateTransaksiRequest.transaksi.urutan/created_at/updated_at are
+// ignored — the stored urutan/created_at are preserved, updated_at is
+// recomputed server-side (matches saveTrx()'s UPDATE_TRANSAKSI branch,
+// which does not touch urutan).
+message UpdateTransaksiRequest {
+  string id = 1;
+  Transaksi transaksi = 2;
+}
+
+message UpdateTransaksiResponse {
+  Transaksi transaksi = 1;
+}
+
+message DeleteTransaksiRequest {
+  string id = 1;
+}
+
+message DeleteTransaksiResponse {}
+
+// ReorderTransaksiRequest.ids must be exactly the set of transaksi ids
+// dated tanggal, given in the desired final order — urutan is written as
+// 0..n-1 following that order (matches applyGroupOrder(), reference/
+// udang-dashboard/index.html lines ~4711-4721).
+message ReorderTransaksiRequest {
+  string tanggal = 1;
+  repeated string ids = 2;
+}
+
+message ReorderTransaksiResponse {
+  repeated Transaksi transaksi = 1;
+}

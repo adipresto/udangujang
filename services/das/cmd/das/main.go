@@ -17,6 +17,7 @@ import (
 	healthv1 "udangujang/das/internal/pb/udangujang/health/v1"
 	kastamerv1 "udangujang/das/internal/pb/udangujang/kastamer/v1"
 	pesananv1 "udangujang/das/internal/pb/udangujang/pesanan/v1"
+	transaksiv1 "udangujang/das/internal/pb/udangujang/transaksi/v1"
 	"udangujang/das/internal/server"
 	fsstore "udangujang/das/internal/store/firestore"
 )
@@ -44,6 +45,7 @@ func main() {
 	pesananRepo := fsstore.NewPesananRepository(fsClient)
 	promoRepo := fsstore.NewPromoRepository(fsClient)
 	hargaRepo := fsstore.NewHargaRepository(fsClient)
+	transaksiRepo := fsstore.NewTransaksiRepository(fsClient)
 
 	grpcServer := grpc.NewServer()
 	healthv1.RegisterHealthServiceServer(grpcServer, server.NewHealthServer())
@@ -52,6 +54,7 @@ func main() {
 	kastamerv1.RegisterAlamatServiceServer(grpcServer, server.NewAlamatServer(alamatRepo))
 	pesananv1.RegisterPesananServiceServer(grpcServer, server.NewPesananServer(pesananRepo, kastamerRepo, alamatRepo, promoRepo))
 	hargav1.RegisterHargaServiceServer(grpcServer, server.NewHargaServer(hargaRepo, promoRepo))
+	transaksiv1.RegisterTransaksiServiceServer(grpcServer, server.NewTransaksiServer(transaksiRepo))
 	reflection.Register(grpcServer)
 
 	log.Printf("das: gRPC server listening on %s", addr)

@@ -16,4 +16,9 @@ var (
 	// ErrDuplicateCode is returned by PromoRepository.CreatePromo when a
 	// Promo with the same Code already exists — Code is the unique key.
 	ErrDuplicateCode = errors.New("domain: promo with this code already exists")
+
+	// ErrReorderMismatch is returned by TransaksiRepository.Reorder when
+	// the given ids are not exactly the set of transaksi rows dated the
+	// given tanggal (missing id, unknown id, or an id from another date).
+	ErrReorderMismatch = errors.New("domain: reorder ids do not match transaksi for that tanggal")
 )
