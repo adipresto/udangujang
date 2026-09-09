@@ -19,6 +19,7 @@ type promoDoc struct {
 	Active      bool      `firestore:"active"`
 	Expires     time.Time `firestore:"expires"`
 	MinKg       float64   `firestore:"minKg"`
+	MaxKg       float64   `firestore:"maxKg"`
 	MinKgUtuh   float64   `firestore:"minKgUtuh"`
 	MinKgKupas  float64   `firestore:"minKgKupas"`
 	MinSubtotal float64   `firestore:"minSubtotal"`
@@ -58,6 +59,7 @@ func (r *PromoRepository) GetPromo(ctx context.Context, code string) (domain.Pro
 		Active:      doc.Active,
 		Expires:     doc.Expires,
 		MinKg:       doc.MinKg,
+		MaxKg:       doc.MaxKg,
 		MinKgUtuh:   doc.MinKgUtuh,
 		MinKgKupas:  doc.MinKgKupas,
 		MinSubtotal: doc.MinSubtotal,

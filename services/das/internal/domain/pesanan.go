@@ -72,9 +72,13 @@ const (
 )
 
 // Promo mirrors a promo_codes doc (doc ID = uppercase code, carried
-// separately as Code). MinKg/MinKgUtuh/MinKgKupas/MinSubtotal are zero when
-// unset — the pre-merge schema only ever set them when >0 (see
-// docs/migration-context.md § shared/promo_codes).
+// separately as Code). MinKg/MaxKg/MinKgUtuh/MinKgKupas/MinSubtotal are zero
+// when unset — the pre-merge schema only ever set them when >0 (see
+// docs/migration-context.md § shared/promo_codes). MaxKg isn't documented in
+// migration-context.md but is a real field written by the pre-merge
+// dashboard's promo editor and read by checkPromoEligibility() (reference/
+// uua/index.html line 2255) — added here so ValidatePromo can port that
+// check verbatim.
 type Promo struct {
 	Code        string
 	Type        string
@@ -82,6 +86,7 @@ type Promo struct {
 	Active      bool
 	Expires     time.Time
 	MinKg       float64
+	MaxKg       float64
 	MinKgUtuh   float64
 	MinKgKupas  float64
 	MinSubtotal float64

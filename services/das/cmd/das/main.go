@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	hargav1 "udangujang/das/internal/pb/udangujang/harga/v1"
 	healthv1 "udangujang/das/internal/pb/udangujang/health/v1"
 	kastamerv1 "udangujang/das/internal/pb/udangujang/kastamer/v1"
 	pesananv1 "udangujang/das/internal/pb/udangujang/pesanan/v1"
@@ -42,6 +43,7 @@ func main() {
 	alamatRepo := fsstore.NewAlamatRepository(fsClient)
 	pesananRepo := fsstore.NewPesananRepository(fsClient)
 	promoRepo := fsstore.NewPromoRepository(fsClient)
+	hargaRepo := fsstore.NewHargaRepository(fsClient)
 
 	grpcServer := grpc.NewServer()
 	healthv1.RegisterHealthServiceServer(grpcServer, server.NewHealthServer())
@@ -49,6 +51,7 @@ func main() {
 	kastamerv1.RegisterKastamerServiceServer(grpcServer, server.NewKastamerServer(kastamerRepo))
 	kastamerv1.RegisterAlamatServiceServer(grpcServer, server.NewAlamatServer(alamatRepo))
 	pesananv1.RegisterPesananServiceServer(grpcServer, server.NewPesananServer(pesananRepo, kastamerRepo, alamatRepo, promoRepo))
+	hargav1.RegisterHargaServiceServer(grpcServer, server.NewHargaServer(hargaRepo, promoRepo))
 	reflection.Register(grpcServer)
 
 	log.Printf("das: gRPC server listening on %s", addr)

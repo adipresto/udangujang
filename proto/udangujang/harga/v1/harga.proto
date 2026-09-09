@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package udangujang.harga.v1;
+
+option go_package = "udangujang/das/gen/udangujang/harga/v1;hargav1";
+
+// HargaService exposes read-only pricing config and promo validation to
+// callers (SSR public form, admin dashboard) — see docs/architecture.md: SSR
+// never touches Firestore directly, so config/harga and promo_codes (DAS
+// storage details) are surfaced here through a storage-agnostic contract
+// instead. Both RPCs are read-only; CreatePesanan (pesanan.proto) remains
+// the only write path.
+service HargaService {
+  rpc GetHarga(GetHargaRequest) returns (GetHargaResponse);
+  rpc ValidatePromo(ValidatePromoRequest) returns (ValidatePromoResponse);
+}
+
+// HargaUdang/HargaCumi/HargaKembung/HargaTeriNasi/HargaOngkir mirror the
+// config/harga singleton doc's nested groups — see
+// docs/migration-context.md § shared/config/harga. Non-linear entries
+// (udang kupas ½kg, kembung ½kg, teri nasi 1kg) are intentional pricing,
+// not bugs — do not simplify them into a proportional formula.
+message HargaUdang {
+  int64 per_kg = 1;
+  int64 setengah_kg = 2;
+  int64 jasa_kupas_per_kg = 3;
+  int64 kupas_setengah_surcharge = 4;
+}
+
+message HargaCumi {
+  int64 per_kg = 1;
+  int64 setengah_kg = 2;
+}
+
+message HargaKembung {
+  int64 per_kg = 1;
+  int64 setengah_kg = 2;
+  int64 jasa_bersih_per_kg = 3;
+}
+
+message HargaTeriNasi {
+  int64 price_per_pack = 1;
+  double kg_per_pack = 2;
+  int64 harga_satu_kg = 3;
+}
+
+message HargaOngkir {
+  int64 normal = 1;
+  int64 bogor_tangerang = 2;
+  double min_kg_bogor_tangerang = 3;
+  double min_kg_default = 4;
+}
+
+message HargaConfig {
+  HargaUdang udang = 1;
+  HargaCumi cumi = 2;
+  HargaKembung kembung = 3;
+  HargaTeriNasi teri_nasi = 4;
+  HargaOngkir ongkir = 5;
+}
+
+message GetHargaRequest {}
+
+message GetHargaResponse {
+  HargaConfig harga = 1;
+}
+
+// ValidatePromoRequest mirrors checkPromoEligibility()'s inputs from the
+// pre-merge public form (reference/uua/index.html lines 2249-2268):
+// kg_utuh/kg_kupas are broken out separately because minKgUtuh/minKgKupas
+// constraints check them individually; kg_extra sums every other weighed
+// product (cumi, kembung, teri nasi, ...); subtotal is the pre-ongkir,
+// pre-promo Rupiah total of all line items.
+message ValidatePromoRequest {
+  string kode_promo = 1;
+  double kg_utuh = 2;
+  double kg_kupas = 3;
+  double kg_extra = 4;
+  int64 subtotal = 5;
+}
+
+// ValidatePromoResponse.valid/reason mirror checkPromoEligibility()'s
+// { ok, reason } pair. type/value/min*/max*/used_count echo the matched
+// promo_codes doc so the caller (SSR) can apply the discount/free_ongkir/
+// free_product effect itself — this RPC only validates eligibility, it does
+// not compute a total or touch usedCount (see CreatePesanan's own,
+// stricter-subset validatePromo for the write-time check).
+message ValidatePromoResponse {
+  bool valid = 1;
+  string reason = 2;
+  string type = 3;
+  double value = 4;
+  double min_kg = 5;
+  double max_kg = 6;
+  double min_kg_utuh = 7;
+  double min_kg_kupas = 8;
+  double min_subtotal = 9;
+  int64 max_uses = 10;
+  int64 used_count = 11;
+}
