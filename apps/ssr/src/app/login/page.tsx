@@ -107,7 +107,6 @@ export default function LoginPage() {
 
   return (
     <main
-      className="flex min-h-screen items-center justify-center"
       style={{
         display: "flex",
         minHeight: "100vh",
@@ -118,7 +117,6 @@ export default function LoginPage() {
       }}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow"
         style={{
           width: "100%",
           maxWidth: 380,
@@ -172,7 +170,6 @@ export default function LoginPage() {
             id="login-btn"
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white"
             style={{
               width: "100%",
               padding: 10,

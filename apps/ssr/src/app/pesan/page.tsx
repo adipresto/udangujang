@@ -1,6 +1,7 @@
 import OrderForm from "@/components/OrderForm";
 import { getHarga } from "@/lib/das-client";
 import { DEFAULT_HARGA, type HargaConfig } from "@/lib/pricing";
+import "./uua.css";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,12 @@ export default async function PesanPage() {
 
   return (
     <main>
-      <h1>Form Pesanan Udang Segar</h1>
+      <header>
+        <div className="header-top">
+          <h1>Form Pesanan Udang Segar</h1>
+          <p>Isi data di bawah, kami akan segera konfirmasi via WhatsApp</p>
+        </div>
+      </header>
       <OrderForm hargaAwal={hargaAwal} />
     </main>
   );

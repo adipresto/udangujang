@@ -37,10 +37,10 @@ export interface OrderFormProps {
 }
 
 const BAYAR_OPTIONS = [
-  { value: "Transfer - Jago", label: "Jago", desc: "Bank Jago · transfer antar bank" },
-  { value: "Transfer - BCA", label: "BCA", desc: "Bank Central Asia" },
-  { value: "Transfer - OVO", label: "OVO", desc: "Dompet digital OVO" },
-  { value: "Cash on Delivery (COD)", label: "Cash on Delivery", desc: "Bayar tunai saat pesanan tiba" },
+  { value: "Transfer - Jago", label: "Jago", desc: "Bank Jago · transfer antar bank", logo: "jago", logoText: "J", rekeningLabel: "No. Rekening Jago", rekeningNum: "101962407482" },
+  { value: "Transfer - BCA", label: "BCA", desc: "Bank Central Asia", logo: "bca", logoText: "BCA", rekeningLabel: "No. Rekening BCA", rekeningNum: "5221698607" },
+  { value: "Transfer - OVO", label: "OVO", desc: "Dompet digital OVO", logo: "ovo", logoText: "OVO", rekeningLabel: "No. OVO", rekeningNum: "085888031940" },
+  { value: "Cash on Delivery (COD)", label: "Cash on Delivery", desc: "Bayar tunai saat pesanan tiba", logo: "cod", logoText: "💵", rekeningLabel: "", rekeningNum: "" },
 ];
 
 function stepHalf(raw: string, delta: number): string {
@@ -303,206 +303,283 @@ export default function OrderForm({
     );
   }
 
-  const stepperCls = "flex items-center gap-1";
-  const btnCls = "w-8 h-8 rounded border border-gray-300 text-lg leading-none disabled:opacity-40";
-  const inputCls = "w-20 rounded border border-gray-300 px-2 py-1 text-right";
+  const showBeratError = Boolean(errors.berat);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mx-auto flex max-w-xl flex-col gap-6 p-4">
-      <section>
-        <h2 className="mb-2 text-lg font-bold">1. Pesanan</h2>
-        <div className="rounded border p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold">🦐 Udang Utuh</span>
-            <div className={stepperCls}>
-              <button type="button" className={btnCls} disabled={(parseBeratVal(kgUtuh) || 0) <= 0} onClick={() => setKgUtuh(stepHalf(kgUtuh, -0.5))} aria-label="Kurangi berat udang utuh">−</button>
-              <input className={inputCls} inputMode="decimal" value={kgUtuh} onChange={(e) => setKgUtuh(e.target.value)} onBlur={(e) => setKgUtuh(blurHalf(e.target.value))} aria-label="Berat udang utuh dalam kg" />
-              <span>kg</span>
-              <button type="button" className={btnCls} onClick={() => setKgUtuh(stepHalf(kgUtuh, 0.5))} aria-label="Tambah berat udang utuh">+</button>
+    <form onSubmit={handleSubmit} noValidate>
+      <div className="form-body">
+        <section className="step-section" id="section-1">
+          <div className="step-heading">
+            <div className="step-num">1</div>
+            <div className="step-title">Pesanan</div>
+          </div>
+          <div className="card">
+            <div className="field-group-label">Pesanan <span className="required">*</span></div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>🦐 Udang Utuh</div>
+                <div className="berat-wrap" style={{ margin: 0 }}>
+                  <button type="button" className="berat-btn" disabled={(parseBeratVal(kgUtuh) || 0) <= 0} onClick={() => setKgUtuh(stepHalf(kgUtuh, -0.5))} aria-label="Kurangi berat udang utuh">−</button>
+                  <input className="berat-input" inputMode="decimal" value={kgUtuh} onChange={(e) => setKgUtuh(e.target.value)} onBlur={(e) => setKgUtuh(blurHalf(e.target.value))} aria-label="Berat udang utuh dalam kg" />
+                  <span className="berat-unit">kg</span>
+                  <button type="button" className="berat-btn" onClick={() => setKgUtuh(stepHalf(kgUtuh, 0.5))} aria-label="Tambah berat udang utuh">+</button>
+                </div>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.udang.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.udang.setengahKg)}</div>
+            </div>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>✂️ Udang Kupas</div>
+                <div className="berat-wrap" style={{ margin: 0 }}>
+                  <button type="button" className="berat-btn" disabled={(parseBeratVal(kgKupas) || 0) <= 0} onClick={() => setKgKupas(stepHalf(kgKupas, -0.5))} aria-label="Kurangi berat udang kupas">−</button>
+                  <input className="berat-input" inputMode="decimal" value={kgKupas} onChange={(e) => setKgKupas(e.target.value)} onBlur={(e) => setKgKupas(blurHalf(e.target.value))} aria-label="Berat udang kupas dalam kg" />
+                  <span className="berat-unit">kg</span>
+                  <button type="button" className="berat-btn" onClick={() => setKgKupas(stepHalf(kgKupas, 0.5))} aria-label="Tambah berat udang kupas">+</button>
+                </div>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.udang.perKg + harga.udang.jasaKupasPerKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.udang.setengahKg + harga.udang.kupasSetengahSurcharge)}</div>
+              <div className="toggle-group" style={{ marginTop: 10 }}>
+                <div className="toggle-option">
+                  <input type="radio" id="kupasTailOn" name="jenisKupas" value="Peel Tail-On" checked={jenisKupas === "Peel Tail-On"} onChange={(e) => setJenisKupas(e.target.value)} />
+                  <label htmlFor="kupasTailOn">Peel Tail-On</label>
+                </div>
+                <div className="toggle-option">
+                  <input type="radio" id="kupasEasyPeel" name="jenisKupas" value="Easy Peel" checked={jenisKupas === "Easy Peel"} onChange={(e) => setJenisKupas(e.target.value)} />
+                  <label htmlFor="kupasEasyPeel">Easy Peel</label>
+                </div>
+              </div>
+            </div>
+
+            <p className="berat-hint" style={{ marginTop: 10 }}>
+              {areaInfo.area === "bogor_tangerang" ? "Area Bogor / Tangerang — min. total 2 kg." : "Min. total 0,5 kg. Boleh isi salah satu atau semuanya."}
+            </p>
+            {showBeratError && <div className="field-error" style={{ display: "block" }}>{errors.berat}</div>}
+          </div>
+
+          <div className="card produk-lain-card">
+            <div className="field-group-label">Tambah Produk Lain <span className="optional-tag">Opsional</span></div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>🦑 Cumi Bangka</div>
+                <div className="berat-wrap" style={{ margin: 0 }}>
+                  <button type="button" className="berat-btn" disabled={(parseBeratVal(kgCumi) || 0) <= 0} onClick={() => setKgCumi(stepHalf(kgCumi, -0.5))} aria-label="Kurangi berat cumi">−</button>
+                  <input className="berat-input" inputMode="decimal" value={kgCumi} onChange={(e) => setKgCumi(e.target.value)} onBlur={(e) => setKgCumi(blurHalf(e.target.value))} aria-label="Berat cumi dalam kg" />
+                  <span className="berat-unit">kg</span>
+                  <button type="button" className="berat-btn" onClick={() => setKgCumi(stepHalf(kgCumi, 0.5))} aria-label="Tambah berat cumi">+</button>
+                </div>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.cumi.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.cumi.setengahKg)}</div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>🐟 Ikan Kembung</div>
+                <div className="berat-wrap" style={{ margin: 0 }}>
+                  <button type="button" className="berat-btn" disabled={(parseBeratVal(kgKembung) || 0) <= 0} onClick={() => setKgKembung(stepHalf(kgKembung, -0.5))} aria-label="Kurangi berat ikan kembung">−</button>
+                  <input className="berat-input" inputMode="decimal" value={kgKembung} onChange={(e) => setKgKembung(e.target.value)} onBlur={(e) => setKgKembung(blurHalf(e.target.value))} aria-label="Berat ikan kembung dalam kg" />
+                  <span className="berat-unit">kg</span>
+                  <button type="button" className="berat-btn" onClick={() => setKgKembung(stepHalf(kgKembung, 0.5))} aria-label="Tambah berat ikan kembung">+</button>
+                </div>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.kembung.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.kembung.setengahKg)}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <input type="checkbox" id="bersih-kembung" checked={bersihKembung} disabled={(parseBeratVal(kgKembung) || 0) <= 0} onChange={(e) => setBersihKembung(e.target.checked)} style={{ width: 16, height: 16, flexShrink: 0 }} />
+                <label htmlFor="bersih-kembung" style={{ margin: 0, textTransform: "none", letterSpacing: 0, fontWeight: 500, fontSize: "0.83rem", color: "#374151" }}>
+                  Bersihkan ikan (lepas insang &amp; isi perut) — +{fmt(harga.kembung.jasaBersihPerKg)}/kg
+                </label>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 3 }}>Gratis untuk 0,5 kg pertama, kelebihannya +{fmt(harga.kembung.jasaBersihPerKg)}/kg</div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>🐟 Teri Nasi</div>
+                <div className="berat-wrap" style={{ margin: 0 }}>
+                  <button type="button" className="berat-btn" disabled={(parseBeratVal(kgTeriNasi) || 0) <= 0} onClick={() => setKgTeriNasi(stepQuarter(kgTeriNasi, -0.25, harga.teriNasi.kgPerPack))} aria-label="Kurangi berat teri nasi">−</button>
+                  <input className="berat-input" inputMode="decimal" value={kgTeriNasi} onChange={(e) => setKgTeriNasi(e.target.value)} onBlur={(e) => setKgTeriNasi(blurQuarter(e.target.value, harga.teriNasi.kgPerPack))} aria-label="Berat teri nasi dalam kg" />
+                  <span className="berat-unit">kg</span>
+                  <button type="button" className="berat-btn" onClick={() => setKgTeriNasi(stepQuarter(kgTeriNasi, 0.25, harga.teriNasi.kgPerPack))} aria-label="Tambah berat teri nasi">+</button>
+                </div>
+              </div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.teriNasi.pricePerPack)}/{harga.teriNasi.kgPerPack * 1000}gr &nbsp;·&nbsp; 1kg {fmt(harga.teriNasi.hargaSatuKg)} &nbsp;·&nbsp; kelipatan {harga.teriNasi.kgPerPack * 1000}gr</div>
             </div>
           </div>
-          <p className="mb-4 text-sm text-gray-500">{fmt(harga.udang.perKg)}/kg · ½kg {fmt(harga.udang.setengahKg)}</p>
 
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold">✂️ Udang Kupas</span>
-            <div className={stepperCls}>
-              <button type="button" className={btnCls} disabled={(parseBeratVal(kgKupas) || 0) <= 0} onClick={() => setKgKupas(stepHalf(kgKupas, -0.5))} aria-label="Kurangi berat udang kupas">−</button>
-              <input className={inputCls} inputMode="decimal" value={kgKupas} onChange={(e) => setKgKupas(e.target.value)} onBlur={(e) => setKgKupas(blurHalf(e.target.value))} aria-label="Berat udang kupas dalam kg" />
-              <span>kg</span>
-              <button type="button" className={btnCls} onClick={() => setKgKupas(stepHalf(kgKupas, 0.5))} aria-label="Tambah berat udang kupas">+</button>
+          <div className="card nota-card">
+            <div className="nota-header">🧾 Ringkasan Pesanan</div>
+            <div className="nota-rows">
+              {berat.kgUtuh > 0 && <NotaRow label={`Udang utuh ${berat.kgUtuh} kg`} value={fmt(calc.hargaUtuh)} />}
+              {berat.kgKupas > 0 && <NotaRow label={`Udang kupas ${berat.kgKupas} kg · ${jenisKupas}`} value={fmt(calc.hargaKupas)} />}
+              {berat.kgCumi > 0 && <NotaRow label={`Cumi ${berat.kgCumi} kg`} value={fmt(calc.hargaCumi)} />}
+              {berat.kgKembung > 0 && <NotaRow label={`Ikan kembung ${berat.kgKembung} kg${bersihKembung ? " · dibersihkan" : ""}`} value={fmt(calc.hargaKembung)} />}
+              {berat.kgTeriNasi > 0 && <NotaRow label={`Teri Nasi ${berat.kgTeriNasi} kg`} value={fmt(calc.hargaTeriNasi)} />}
+              <div className="nota-row">
+                <span className="nota-label">Ongkos kirim</span>
+                <span className={calc.ongkirFinal === 0 ? "nota-val nota-free" : "nota-val nota-extra"}>{calc.ongkirFinal === 0 ? "GRATIS 🎉" : `+${fmt(calc.ongkir)}`}</span>
+              </div>
+            </div>
+            {calc.promoAktif && (
+              <div className="nota-row">
+                <span className="nota-label">Promo ({calc.promoAktif.kode})</span>
+                <span className="nota-val" style={{ color: "#16a34a", fontWeight: 700 }}>-{fmt(calc.promoAktif.type === "free_shipping" ? calc.ongkir : calc.diskon)}</span>
+              </div>
+            )}
+            <div className="nota-divider"></div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input
+                type="text"
+                placeholder="Kode promo (opsional)"
+                value={kodePromo}
+                onChange={(e) => setKodePromo(e.target.value.toUpperCase())}
+                aria-label="Kode promo"
+                style={{ flex: 1, padding: "8px 12px", border: "1.5px solid #d1d5db", borderRadius: 8, fontSize: "0.9rem", textTransform: "uppercase" }}
+              />
+              <button
+                type="button"
+                onClick={handleApplyPromo}
+                disabled={promoChecking}
+                style={{ padding: "8px 14px", background: "#92680a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: "0.9rem" }}
+              >
+                Pakai
+              </button>
+            </div>
+            {promoMsg && <div style={{ fontSize: "0.82rem", minHeight: 18, marginBottom: 4 }}>{promoMsg}</div>}
+            {promoDropped && <div style={{ fontSize: "0.82rem", color: "#dc2626", marginBottom: 4 }}>⚠️ Promo dilepas: berat/subtotal tidak lagi memenuhi syarat.</div>}
+            <div className="nota-total-row">
+              <span className="nota-total-label">Total</span>
+              <span className="nota-total-val">{fmt(calc.total)}</span>
             </div>
           </div>
-          <p className="mb-2 text-sm text-gray-500">{fmt(harga.udang.perKg + harga.udang.jasaKupasPerKg)}/kg · ½kg {fmt(harga.udang.setengahKg + harga.udang.kupasSetengahSurcharge)}</p>
-          <div className="mb-2 flex gap-4">
-            <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="jenisKupas" value="Peel Tail-On" checked={jenisKupas === "Peel Tail-On"} onChange={(e) => setJenisKupas(e.target.value)} />
-              Peel Tail-On
-            </label>
-            <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="jenisKupas" value="Easy Peel" checked={jenisKupas === "Easy Peel"} onChange={(e) => setJenisKupas(e.target.value)} />
-              Easy Peel
-            </label>
-          </div>
 
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold">🦑 Cumi Bangka</span>
-            <div className={stepperCls}>
-              <button type="button" className={btnCls} disabled={(parseBeratVal(kgCumi) || 0) <= 0} onClick={() => setKgCumi(stepHalf(kgCumi, -0.5))} aria-label="Kurangi berat cumi">−</button>
-              <input className={inputCls} inputMode="decimal" value={kgCumi} onChange={(e) => setKgCumi(e.target.value)} onBlur={(e) => setKgCumi(blurHalf(e.target.value))} aria-label="Berat cumi dalam kg" />
-              <span>kg</span>
-              <button type="button" className={btnCls} onClick={() => setKgCumi(stepHalf(kgCumi, 0.5))} aria-label="Tambah berat cumi">+</button>
+          <div className="card">
+            <label htmlFor="requestLain">Catatan / Request Lain</label>
+            <textarea id="requestLain" placeholder="Contoh: tolong dikemas rapi, minta segar hari ini…" maxLength={300} value={catatan} onChange={(e) => setCatatan(e.target.value)} />
+            <div className="char-count">{catatan.length}/300</div>
+          </div>
+        </section>
+
+        <section className="step-section" id="section-2">
+          <div className="step-heading">
+            <div className="step-num">2</div>
+            <div className="step-title">Identitas</div>
+          </div>
+          <div className="card">
+            <label htmlFor="nama">Nama <span className="required">*</span></label>
+            <input type="text" id="nama" placeholder="Nama panggilan" autoComplete="name" inputMode="text" value={nama} onChange={(e) => setNama(e.target.value)} />
+            {errors.nama && <div className="field-error" style={{ display: "block" }}>{errors.nama}</div>}
+            <label htmlFor="penerima" style={{ marginTop: 16 }}>Nomor Penerima <span className="optional-tag">opsional</span></label>
+            <div className="phone-wrap">
+              <span className="phone-prefix">+62</span>
+              <input type="tel" id="penerima" placeholder="81234567890" autoComplete="tel" inputMode="numeric" value={penerima} onChange={(e) => setPenerima(e.target.value)} />
+            </div>
+            <p className="maps-hint" style={{ marginTop: 6 }}>Isi jika pesanan dikirim ke orang lain. Jika untuk diri sendiri, kosongkan saja.</p>
+          </div>
+        </section>
+
+        <section className="step-section" id="section-3">
+          <div className="step-heading">
+            <div className="step-num">3</div>
+            <div className="step-title">Alamat</div>
+          </div>
+          <div className="card">
+            <label htmlFor="alamat">Alamat Detail <span className="required">*</span></label>
+            <textarea id="alamat" placeholder="Contoh: Jl. Mawar No. 5, RT 03/RW 02, Kel. Sukajadi, Kec. Bandung Utara" inputMode="text" rows={3} value={alamat} onChange={(e) => setAlamat(e.target.value)} />
+            {errors.alamat && <div className="field-error" style={{ display: "block" }}>{errors.alamat}</div>}
+          </div>
+          <div className="card">
+            <div className="field-group-label">Pin Lokasi <span className="optional-tag">opsional</span></div>
+            <div className="maps-wrap">
+              <div className="maps-row">
+                <input type="text" placeholder="Link Google Maps muncul di sini…" inputMode="text" readOnly value={mapsLink} aria-label="Link Google Maps pin lokasi" />
+                <div style={{ display: "flex", gap: 8, flex: 1 }}>
+                  <input type="text" inputMode="decimal" placeholder="lat, cth -6.150" value={pinLat} onChange={(e) => setPinLat(e.target.value)} aria-label="Latitude pin lokasi" />
+                  <input type="text" inputMode="decimal" placeholder="lng, cth 106.900" value={pinLng} onChange={(e) => setPinLng(e.target.value)} aria-label="Longitude pin lokasi" />
+                  <button type="button" className="btn-maps" onClick={handlePin}>📍 Pin Lokasi</button>
+                </div>
+              </div>
+              <p className="maps-hint">Cukup pin titik — alamat akan terisi otomatis. Membantu kurir menemukan lokasimu lebih akurat.</p>
             </div>
           </div>
-          <p className="mb-4 text-sm text-gray-500">{fmt(harga.cumi.perKg)}/kg · ½kg {fmt(harga.cumi.setengahKg)}</p>
+        </section>
 
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold">🐟 Ikan Kembung</span>
-            <div className={stepperCls}>
-              <button type="button" className={btnCls} disabled={(parseBeratVal(kgKembung) || 0) <= 0} onClick={() => setKgKembung(stepHalf(kgKembung, -0.5))} aria-label="Kurangi berat ikan kembung">−</button>
-              <input className={inputCls} inputMode="decimal" value={kgKembung} onChange={(e) => setKgKembung(e.target.value)} onBlur={(e) => setKgKembung(blurHalf(e.target.value))} aria-label="Berat ikan kembung dalam kg" />
-              <span>kg</span>
-              <button type="button" className={btnCls} onClick={() => setKgKembung(stepHalf(kgKembung, 0.5))} aria-label="Tambah berat ikan kembung">+</button>
+        <section className="step-section" id="section-4">
+          <div className="step-heading">
+            <div className="step-num">4</div>
+            <div className="step-title">Pembayaran</div>
+          </div>
+          <div className="card">
+            <div className="field-group-label">Metode Pembayaran <span className="required">*</span></div>
+            <div className="pay-group" role="radiogroup" aria-label="Metode pembayaran">
+              <p className="pay-section-label">Transfer</p>
+              {BAYAR_OPTIONS.slice(0, 3).map((opt) => (
+                <PayOption key={opt.value} opt={opt} bayar={bayar} setBayar={setBayar} />
+              ))}
+              <div className="pay-divider"></div>
+              <p className="pay-section-label">Tunai</p>
+              <PayOption opt={BAYAR_OPTIONS[3]} bayar={bayar} setBayar={setBayar} />
             </div>
+            {errors.bayar && <div className="field-error" style={{ display: "block" }}>{errors.bayar}</div>}
           </div>
-          <p className="mb-1 text-sm text-gray-500">{fmt(harga.kembung.perKg)}/kg · ½kg {fmt(harga.kembung.setengahKg)}</p>
-          <label className="mb-4 flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={bersihKembung} disabled={(parseBeratVal(kgKembung) || 0) <= 0} onChange={(e) => setBersihKembung(e.target.checked)} />
-            Bersihkan ikan (lepas insang &amp; isi perut) — +{fmt(harga.kembung.jasaBersihPerKg)}/kg
-          </label>
-          <p className="mb-4 text-xs text-gray-500">Gratis untuk 0,5 kg pertama, kelebihannya +{fmt(harga.kembung.jasaBersihPerKg)}/kg</p>
+        </section>
 
-          <div className="mb-3 flex items-center justify-between">
-            <span className="font-semibold">🐟 Teri Nasi</span>
-            <div className={stepperCls}>
-              <button type="button" className={btnCls} disabled={(parseBeratVal(kgTeriNasi) || 0) <= 0} onClick={() => setKgTeriNasi(stepQuarter(kgTeriNasi, -0.25, harga.teriNasi.kgPerPack))} aria-label="Kurangi berat teri nasi">−</button>
-              <input className={inputCls} inputMode="decimal" value={kgTeriNasi} onChange={(e) => setKgTeriNasi(e.target.value)} onBlur={(e) => setKgTeriNasi(blurQuarter(e.target.value, harga.teriNasi.kgPerPack))} aria-label="Berat teri nasi dalam kg" />
-              <span>kg</span>
-              <button type="button" className={btnCls} onClick={() => setKgTeriNasi(stepQuarter(kgTeriNasi, 0.25, harga.teriNasi.kgPerPack))} aria-label="Tambah berat teri nasi">+</button>
-            </div>
+        <div className="tanggal-kirim-bar" style={{ maxWidth: 560, margin: "0 auto", padding: "8px 12px", background: "white", borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <label className="tk-label" htmlFor="tanggalKirim">Tanggal Pengiriman</label>
+            <input type="date" id="tanggalKirim" className="tk-input" min={tglKirimMin} value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
           </div>
-          <p className="text-sm text-gray-500">{fmt(harga.teriNasi.pricePerPack)}/{harga.teriNasi.kgPerPack * 1000}gr · 1kg {fmt(harga.teriNasi.hargaSatuKg)} · kelipatan {harga.teriNasi.kgPerPack * 1000}gr</p>
-
-          <p className="mt-3 text-sm text-gray-500">
-            {areaInfo.area === "bogor_tangerang" ? "Area Bogor / Tangerang — min. total 2 kg." : "Min. total 0,5 kg. Boleh isi salah satu atau semuanya."}
-          </p>
-          {errors.berat && <p className="mt-1 text-sm text-red-600">{errors.berat}</p>}
+          <p className="maps-hint" style={{ marginTop: 4 }}>Ganti jika mau dijadwalkan untuk tanggal lain. Kosong = Besok (H+1).</p>
         </div>
 
-        <div className="mt-3 rounded border p-4">
-          <h3 className="mb-2 font-semibold">🧾 Ringkasan Pesanan</h3>
-          {berat.kgUtuh > 0 && <NotaRow label={`Udang utuh ${berat.kgUtuh} kg`} value={fmt(calc.hargaUtuh)} />}
-          {berat.kgKupas > 0 && <NotaRow label={`Udang kupas ${berat.kgKupas} kg · ${jenisKupas}`} value={fmt(calc.hargaKupas)} />}
-          {berat.kgCumi > 0 && <NotaRow label={`Cumi ${berat.kgCumi} kg`} value={fmt(calc.hargaCumi)} />}
-          {berat.kgKembung > 0 && <NotaRow label={`Ikan kembung ${berat.kgKembung} kg${bersihKembung ? " · dibersihkan" : ""}`} value={fmt(calc.hargaKembung)} />}
-          {berat.kgTeriNasi > 0 && <NotaRow label={`Teri Nasi ${berat.kgTeriNasi} kg`} value={fmt(calc.hargaTeriNasi)} />}
-          <NotaRow label="Ongkos kirim" value={calc.ongkirFinal === 0 ? "GRATIS 🎉" : `+${fmt(calc.ongkir)}`} />
-          {calc.promoAktif && (
-            <NotaRow label={`Promo (${calc.promoAktif.kode})`} value={`-${fmt(calc.promoAktif.type === "free_shipping" ? calc.ongkir : calc.diskon)}`} />
-          )}
-          <div className="mt-2 flex gap-2">
-            <input
-              className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm uppercase"
-              placeholder="Kode promo (opsional)"
-              value={kodePromo}
-              onChange={(e) => setKodePromo(e.target.value.toUpperCase())}
-              aria-label="Kode promo"
-            />
-            <button type="button" onClick={handleApplyPromo} disabled={promoChecking} className="rounded bg-yellow-700 px-3 py-1 text-sm font-bold text-white disabled:opacity-50">
-              Pakai
-            </button>
-          </div>
-          {promoMsg && <p className="mt-1 text-xs text-gray-600">{promoMsg}</p>}
-          {promoDropped && <p className="mt-1 text-xs text-red-600">⚠️ Promo dilepas: berat/subtotal tidak lagi memenuhi syarat.</p>}
-          <div className="mt-2 flex justify-between border-t pt-2 font-bold">
-            <span>Total</span>
-            <span>{fmt(calc.total)}</span>
-          </div>
-        </div>
-      </section>
+        {submitMsg && <div style={{ fontSize: "0.85rem", color: "#15803d" }}>{submitMsg}</div>}
 
-      <section>
-        <h2 className="mb-2 text-lg font-bold">2. Identitas</h2>
-        <div className="rounded border p-4">
-          <label htmlFor="nama" className="mb-1 block text-sm font-semibold">Nama *</label>
-          <input id="nama" className="w-full rounded border border-gray-300 px-3 py-2" placeholder="Nama panggilan" autoComplete="name" value={nama} onChange={(e) => setNama(e.target.value)} />
-          {errors.nama && <p className="mt-1 text-sm text-red-600">{errors.nama}</p>}
-          <label htmlFor="penerima" className="mb-1 mt-3 block text-sm font-semibold">Nomor Penerima (opsional)</label>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">+62</span>
-            <input id="penerima" type="tel" inputMode="numeric" className="w-full rounded border border-gray-300 px-3 py-2" placeholder="81234567890" autoComplete="tel" value={penerima} onChange={(e) => setPenerima(e.target.value)} />
-          </div>
-          <p className="mt-1 text-xs text-gray-500">Isi jika pesanan dikirim ke orang lain. Jika untuk diri sendiri, kosongkan saja.</p>
+        <div className="submit-bar">
+          <button type="submit" disabled={submitBusy} className="btn-submit" style={{ flex: 1 }}>
+            {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : "Pesan via WhatsApp"}
+          </button>
         </div>
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-lg font-bold">3. Alamat</h2>
-        <div className="rounded border p-4">
-          <label htmlFor="alamat" className="mb-1 block text-sm font-semibold">Alamat Detail *</label>
-          <textarea id="alamat" rows={3} className="w-full rounded border border-gray-300 px-3 py-2" placeholder="Contoh: Jl. Mawar No. 5, RT 03/RW 02, Kel. Sukajadi, Kec. Bandung Utara" value={alamat} onChange={(e) => setAlamat(e.target.value)} />
-          {errors.alamat && <p className="mt-1 text-sm text-red-600">{errors.alamat}</p>}
-          <div className="mt-3">
-            <span className="mb-1 block text-sm font-semibold">Pin Lokasi (opsional)</span>
-            <input className="w-full rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm" placeholder="Link Google Maps muncul di sini…" value={mapsLink} readOnly aria-label="Link Google Maps pin lokasi" />
-            <div className="mt-2 flex gap-2">
-              <input className="w-full rounded border border-gray-300 px-2 py-1 text-sm" inputMode="decimal" placeholder="lat, cth -6.150" value={pinLat} onChange={(e) => setPinLat(e.target.value)} aria-label="Latitude pin lokasi" />
-              <input className="w-full rounded border border-gray-300 px-2 py-1 text-sm" inputMode="decimal" placeholder="lng, cth 106.900" value={pinLng} onChange={(e) => setPinLng(e.target.value)} aria-label="Longitude pin lokasi" />
-              <button type="button" onClick={handlePin} className="shrink-0 rounded border px-3 py-1 text-sm font-semibold">📍 Pin Lokasi</button>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">Cukup pin titik — alamat akan terisi otomatis. Membantu kurir menemukan lokasimu lebih akurat.</p>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-lg font-bold">4. Pembayaran</h2>
-        <div className="rounded border p-4">
-          <span className="mb-2 block text-sm font-semibold">Metode Pembayaran *</span>
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Metode pembayaran">
-            {BAYAR_OPTIONS.map((opt) => (
-              <label key={opt.value} className="flex items-center gap-2 rounded border px-3 py-2 text-sm">
-                <input type="radio" name="bayar" value={opt.value} checked={bayar === opt.value} onChange={(e) => setBayar(e.target.value)} />
-                <span>
-                  <span className="font-semibold">{opt.label}</span>
-                  <span className="block text-xs text-gray-500">{opt.desc}{REKENING[opt.value] ? ` · ${REKENING[opt.value]}` : ""}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-          {errors.bayar && <p className="mt-1 text-sm text-red-600">{errors.bayar}</p>}
-          <label htmlFor="kodePromoBayar" className="mb-1 mt-3 block text-sm font-semibold">Kode Promo (opsional)</label>
-          <input id="kodePromoBayar" className="w-full rounded border border-gray-300 px-3 py-2 uppercase" placeholder="Kode promo" value={kodePromo} onChange={(e) => setKodePromo(e.target.value.toUpperCase())} />
-          <label htmlFor="requestLain" className="mb-1 mt-3 block text-sm font-semibold">Catatan / Request Lain</label>
-          <textarea id="requestLain" maxLength={300} rows={2} className="w-full rounded border border-gray-300 px-3 py-2" placeholder="Contoh: tolong dikemas rapi, minta segar hari ini…" value={catatan} onChange={(e) => setCatatan(e.target.value)} />
-          <p className="text-xs text-gray-500">{catatan.length}/300</p>
-          <label htmlFor="tanggalKirim" className="mb-1 mt-3 block text-sm font-semibold">Tanggal Pengiriman</label>
-          <input id="tanggalKirim" type="date" min={tglKirimMin} className="w-full rounded border border-gray-300 px-3 py-2" value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
-          <p className="mt-1 text-xs text-gray-500">Ganti jika mau dijadwalkan untuk tanggal lain. Kosong = Besok (H+1).</p>
-        </div>
-      </section>
-
-      <div className="rounded border bg-gray-50 p-4 text-sm">
-        <div className="flex justify-between font-bold">
-          <span>Total bayar</span>
-          <span>{fmt(calc.total)}</span>
-        </div>
-        <p className="mt-1 text-xs text-gray-500">Ongkir {calc.ongkirFinal === 0 ? "GRATIS ✅" : `+${fmt(calc.ongkir)}`} · {bayar || "pilih pembayaran dulu"}</p>
       </div>
-
-      {submitMsg && <p className="text-sm text-green-700">{submitMsg}</p>}
-
-      <button type="submit" disabled={submitBusy} className="rounded bg-green-600 px-4 py-3 font-bold text-white disabled:opacity-50">
-        {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : "Pesan via WhatsApp"}
-      </button>
     </form>
+  );
+}
+
+function PayOption({ opt, bayar, setBayar }: {
+  opt: { value: string; label: string; desc: string; logo: string; logoText: string; rekeningLabel: string; rekeningNum: string };
+  bayar: string;
+  setBayar: (v: string) => void;
+}) {
+  const id = `pay-${opt.logo}`;
+  const rekening = REKENING[opt.value];
+  return (
+    <div className="pay-option">
+      <input type="radio" id={id} name="bayar" value={opt.value} checked={bayar === opt.value} onChange={(e) => setBayar(e.target.value)} />
+      <label className="pay-label" htmlFor={id}>
+        <div className={`pay-logo ${opt.logo}`}>{opt.logoText}</div>
+        <div className="pay-info">
+          <div className="pay-name">{opt.label}</div>
+          <div className="pay-desc">{opt.desc}{rekening ? ` · ${rekening}` : ""}</div>
+        </div>
+        <div className="pay-check"></div>
+      </label>
+      {opt.rekeningNum && (
+        <div className="pay-account">
+          <div className="pay-account-info">
+            <div className="pay-account-label">{opt.rekeningLabel}</div>
+            <div className="pay-account-num">{opt.rekeningNum}</div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 function NotaRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span>{label}</span>
-      <span>{value}</span>
+    <div className="nota-row">
+      <span className="nota-label">{label}</span>
+      <span className="nota-val">{value}</span>
     </div>
   );
 }

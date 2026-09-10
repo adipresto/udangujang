@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase-client";
+import "./dashboard.css";
 
 // Ports the pre-merge dashboard session logic (reference/udang-dashboard/
 // index.html ~lines 1971-1978, 2006-2037): 24h TTL on the login timestamp,
