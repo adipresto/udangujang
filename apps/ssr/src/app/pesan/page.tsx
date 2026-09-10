@@ -48,7 +48,7 @@ export default async function PesanPage() {
     <main>
       <header>
         <div className="header-top">
-          <h1>Form Pesanan Udang Segar</h1>
+          <h1>Form Pesanan</h1>
           <p>Isi data di bawah, kami akan segera konfirmasi via WhatsApp</p>
         </div>
       </header>

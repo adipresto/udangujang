@@ -69,6 +69,22 @@ function blurQuarter(raw: string, pack: number): string {
   return String(n > 0 && n < pack ? pack : n);
 }
 
+// MIN_KG_PRODUK ports the produk-lain (tongkol, nila) floor
+// (reference/uua/index.html line 2544) — chip steppers clamp to >= 0.5,
+// step 0.5, mirroring stepProduk/onProdukBlur (lines 2545-2561).
+const MIN_KG_PRODUK = 0.5;
+
+function stepProduk(raw: string, delta: number): string {
+  const val = parseBeratVal(raw) || MIN_KG_PRODUK;
+  return String(Math.max(MIN_KG_PRODUK, Math.round((val + delta) * 2) / 2));
+}
+
+function blurProduk(raw: string): string {
+  let v = parseBeratVal(raw);
+  if (isNaN(v) || v < MIN_KG_PRODUK) v = MIN_KG_PRODUK;
+  return String(Math.round(v * 2) / 2);
+}
+
 export default function OrderForm({
   hargaAwal,
   mode = "publik",
@@ -81,6 +97,11 @@ export default function OrderForm({
   const [kgCumi, setKgCumi] = useState("0");
   const [kgKembung, setKgKembung] = useState("0");
   const [kgTeriNasi, setKgTeriNasi] = useState("0");
+  const [tongkolAktif, setTongkolAktif] = useState(false);
+  const [nilaAktif, setNilaAktif] = useState(false);
+  const [kgTongkol, setKgTongkol] = useState("0.5");
+  const [kgNila, setKgNila] = useState("0.5");
+  const [produkCustom] = useState<string[]>([]);
   const [bersihKembung, setBersihKembung] = useState(false);
   const [jenisKupas, setJenisKupas] = useState("Peel Tail-On");
   const [nama, setNama] = useState("");
@@ -149,7 +170,15 @@ export default function OrderForm({
   }, [berat, alamat, pin, harga, promo]);
 
   const promoDropped = promo && !calc.promoAktif;
-  const beratOk = isBeratMinMet(berat, alamat, pin, harga);
+  // kgTongkol/kgNila ikut gate min-berat seperti reference getProdukLainKg
+  // + isStep1Done (index.html:1626-1645): chip aktif menambah total kg,
+  // meski harganya Rp0 (konfirmasi via WA). pricing.ts frozen jadi
+  // penjumlahannya di sini, bukan di computeOrder/isBeratMinMet.
+  const kgTongkolNum = tongkolAktif ? parseBeratVal(kgTongkol) || 0 : 0;
+  const kgNilaNum = nilaAktif ? parseBeratVal(kgNila) || 0 : 0;
+  const beratOk =
+    produkCustom.length > 0 ||
+    isBeratMinMet({ ...berat, kgUtuh: berat.kgUtuh + kgTongkolNum + kgNilaNum }, alamat, pin, harga);
 
   const tglKirimMin = useMemo(() => {
     const d = new Date(Date.now() + 86400000);
@@ -233,6 +262,14 @@ export default function OrderForm({
 
     const penerimaNorm = normalizePenerima(penerima);
     const tglKirimFormatted = tglKirim ? formatTanggalKirim(tglKirim) : "";
+    // getProdukLainLines verbatim (index.html:2575-2589): chip aktif +
+    // custom list masuk pesan WA sebagai baris teks (harga konfirmasi WA).
+    // wa-message.ts frozen — baris digabung ke catatan agar tetap terkirim.
+    const produkLainLines: string[] = [];
+    if (tongkolAktif) produkLainLines.push(`🐟 Ikan Tongkol : ${kgTongkolNum} kg (harga konfirmasi WA)`);
+    if (nilaAktif) produkLainLines.push(`🐠 Ikan Nila : ${kgNilaNum} kg (harga konfirmasi WA)`);
+    for (const item of produkCustom) produkLainLines.push(`Lainnya    : ${item}`);
+    const catatanFull = [catatan.trim(), ...produkLainLines].filter((l) => !!l).join("\n");
 
     // Mode admin: SKIP redirect WhatsApp — admin tidak chat ke diri sendiri.
     if (mode === "publik") {
@@ -248,7 +285,7 @@ export default function OrderForm({
         kgTeriNasi: berat.kgTeriNasi,
         bersihKembung,
         jenisKupas,
-        catatan: catatan.trim(),
+        catatan: catatanFull,
         tglKirimFormatted,
         bayar,
         promoKode: calc.promoAktif ? calc.promoAktif.kode : null,
@@ -273,7 +310,7 @@ export default function OrderForm({
       pinLng: pin ? pin.lng : null,
       bayar,
       kodePromo: calc.promoAktif ? calc.promoAktif.kode : "",
-      catatan: catatan.trim(),
+      catatan: catatanFull,
       tglKirim,
       harga,
     };
@@ -371,7 +408,7 @@ export default function OrderForm({
                   <button type="button" className="berat-btn" onClick={() => setKgCumi(stepHalf(kgCumi, 0.5))} aria-label="Tambah berat cumi">+</button>
                 </div>
               </div>
-              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.cumi.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.cumi.setengahKg)}</div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.cumi.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.cumi.setengahKg)} &nbsp;·&nbsp; Ukuran 10 &nbsp;·&nbsp; min. 1 kg</div>
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -384,7 +421,7 @@ export default function OrderForm({
                   <button type="button" className="berat-btn" onClick={() => setKgKembung(stepHalf(kgKembung, 0.5))} aria-label="Tambah berat ikan kembung">+</button>
                 </div>
               </div>
-              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.kembung.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.kembung.setengahKg)}</div>
+              <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.kembung.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.kembung.setengahKg)} &nbsp;·&nbsp; Ukuran 12 &nbsp;·&nbsp; min. 1 kg</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
                 <input type="checkbox" id="bersih-kembung" checked={bersihKembung} disabled={(parseBeratVal(kgKembung) || 0) <= 0} onChange={(e) => setBersihKembung(e.target.checked)} style={{ width: 16, height: 16, flexShrink: 0 }} />
                 <label htmlFor="bersih-kembung" style={{ margin: 0, textTransform: "none", letterSpacing: 0, fontWeight: 500, fontSize: "0.83rem", color: "#374151" }}>
@@ -406,6 +443,46 @@ export default function OrderForm({
               </div>
               <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.teriNasi.pricePerPack)}/{harga.teriNasi.kgPerPack * 1000}gr &nbsp;·&nbsp; 1kg {fmt(harga.teriNasi.hargaSatuKg)} &nbsp;·&nbsp; kelipatan {harga.teriNasi.kgPerPack * 1000}gr</div>
             </div>
+
+            <div className="produk-chip-row" id="produk-chip-row">
+              <button type="button" className={`produk-chip${tongkolAktif ? " active" : ""}`} id="chip-tongkol" onClick={() => setTongkolAktif(!tongkolAktif)}>
+                <span className="chip-check">✓</span>🐟 Ikan Tongkol
+              </button>
+              <button type="button" className={`produk-chip${nilaAktif ? " active" : ""}`} id="chip-nila" onClick={() => setNilaAktif(!nilaAktif)}>
+                <span className="chip-check">✓</span>🐠 Ikan Nila
+              </button>
+            </div>
+
+            <div className={`produk-stepper${tongkolAktif ? " show" : ""}`} id="stepper-tongkol">
+              <div className="produk-stepper-label">🐟 Ikan Tongkol</div>
+              <div className="produk-stepper-wrap">
+                <button type="button" className="produk-stepper-btn" id="btn-tongkol-min" disabled={kgTongkolNum <= MIN_KG_PRODUK} onClick={() => setKgTongkol(stepProduk(kgTongkol, -0.5))}>−</button>
+                <input className="produk-stepper-input" inputMode="decimal" id="kg-tongkol" value={kgTongkol} autoComplete="off" aria-label="Berat Ikan Tongkol dalam kg" onChange={(e) => setKgTongkol(e.target.value)} onBlur={(e) => setKgTongkol(blurProduk(e.target.value))} />
+                <span className="produk-stepper-unit">kg</span>
+                <button type="button" className="produk-stepper-btn" onClick={() => setKgTongkol(stepProduk(kgTongkol, 0.5))}>+</button>
+              </div>
+              <button type="button" className="produk-stepper-remove" onClick={() => setTongkolAktif(false)} aria-label="Hapus Ikan Tongkol dari pesanan">×</button>
+            </div>
+
+            <div className={`produk-stepper${nilaAktif ? " show" : ""}`} id="stepper-nila">
+              <div className="produk-stepper-label">🐠 Ikan Nila</div>
+              <div className="produk-stepper-wrap">
+                <button type="button" className="produk-stepper-btn" id="btn-nila-min" disabled={kgNilaNum <= MIN_KG_PRODUK} onClick={() => setKgNila(stepProduk(kgNila, -0.5))}>−</button>
+                <input className="produk-stepper-input" inputMode="decimal" id="kg-nila" value={kgNila} autoComplete="off" aria-label="Berat Ikan Nila dalam kg" onChange={(e) => setKgNila(e.target.value)} onBlur={(e) => setKgNila(blurProduk(e.target.value))} />
+                <span className="produk-stepper-unit">kg</span>
+                <button type="button" className="produk-stepper-btn" onClick={() => setKgNila(stepProduk(kgNila, 0.5))}>+</button>
+              </div>
+              <button type="button" className="produk-stepper-remove" onClick={() => setNilaAktif(false)} aria-label="Hapus Ikan Nila dari pesanan">×</button>
+            </div>
+
+            <ul id="produk-custom-list" style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+              {produkCustom.map((item) => (
+                <li key={item} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gray-50)", border: "1.5px solid var(--gray-200)", borderRadius: 8, padding: "8px 10px", fontSize: "0.88rem" }}>
+                  <span style={{ flex: 1, color: "var(--gray-800)" }}>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="berat-hint" style={{ marginTop: 8 }}>Harga produk lain dikonfirmasi via WhatsApp.</p>
           </div>
 
           <div className="card nota-card">
@@ -416,6 +493,11 @@ export default function OrderForm({
               {berat.kgCumi > 0 && <NotaRow label={`Cumi ${berat.kgCumi} kg`} value={fmt(calc.hargaCumi)} />}
               {berat.kgKembung > 0 && <NotaRow label={`Ikan kembung ${berat.kgKembung} kg${bersihKembung ? " · dibersihkan" : ""}`} value={fmt(calc.hargaKembung)} />}
               {berat.kgTeriNasi > 0 && <NotaRow label={`Teri Nasi ${berat.kgTeriNasi} kg`} value={fmt(calc.hargaTeriNasi)} />}
+              {tongkolAktif && <NotaRow label={`Ikan Tongkol ${kgTongkolNum} kg`} value="(harga konfirmasi WA)" />}
+              {nilaAktif && <NotaRow label={`Ikan Nila ${kgNilaNum} kg`} value="(harga konfirmasi WA)" />}
+              {produkCustom.map((item) => (
+                <NotaRow key={item} label={`Lainnya: ${item}`} value="(harga konfirmasi WA)" />
+              ))}
               <div className="nota-row">
                 <span className="nota-label">Ongkos kirim</span>
                 <span className={calc.ongkirFinal === 0 ? "nota-val nota-free" : "nota-val nota-extra"}>{calc.ongkirFinal === 0 ? "GRATIS 🎉" : `+${fmt(calc.ongkir)}`}</span>
