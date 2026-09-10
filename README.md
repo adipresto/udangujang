@@ -49,3 +49,23 @@ Catatan VM ini: binary prebuilt `sharp` (optional dep Next) dan
 `sharp` dimatikan permanen via `overrides` (`"sharp": false`) — scaffold tidak
 butuh optimasi gambar. Kalau `next build` Bus error lagi, download ulang
 `@next/swc-linux-x64-gnu` dari registry (`npm pack`) dan timpa file `.node`-nya.
+
+Bug hoisting `node_modules` (ditemukan lewat verifikasi lokal, belum digali
+root cause-nya): step 3 di atas (`npm run proto:gen`) bisa gagal dengan
+`exec: "protoc-gen-ts_proto": executable file not found in %PATH%` karena
+`ts-proto` ke-install nested di `packages/proto/node_modules/.bin`, bukan
+ke-hoist ke root `node_modules/.bin` seperti diasumsikan komentar di
+`proto/buf.gen.yaml`. Pola yang sama juga di `apps/ssr` — `tsc`/`next` nested
+di `apps/ssr/node_modules/.bin`, jadi `npm run typecheck --workspace apps/ssr`
+dari root PATH juga bisa gagal cara yang sama. Workaround sementara (bukan
+fix, jangan di-hardcode ke script manapun):
+```bash
+PATH="$PATH:$(cd packages/proto/node_modules/.bin && pwd)" npm run proto:gen   # jalankan dari proto/
+PATH="apps/ssr/node_modules/.bin:$PATH" tsc --noEmit -p apps/ssr/tsconfig.json
+```
+Setelah PATH dibetulkan manual, codegen sukses dan hasilnya (`services/das/internal/pb`,
+`packages/proto/src/gen`) identik dengan yang sudah ter-commit — jadi bukan
+proto basi, murni `npm install` tidak hoisting sesuai desain workspace.
+Kemungkinan penyebab: `overrides` di root `package.json` atau version
+conflict yang mencegah dedupe/hoist — perlu dicek pas `npm install`
+berikutnya.
