@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: ssr
-          image: udangujang-ssr:local
-          imagePullPolicy: Never
+          image: ghcr.io/adipresto/udangujang-ssr:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               name: http

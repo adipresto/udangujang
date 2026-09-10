@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: das
-          image: udangujang-das:local
-          imagePullPolicy: Never
+          image: ghcr.io/adipresto/udangujang-das:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 50051
               name: grpc
