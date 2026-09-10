@@ -12,6 +12,8 @@
 #   http://70.153.24.73/atminudang[/...] -> ssr:3000 -> /admin[/...]
 # Prefix lain (/) TIDAK dipakai — bebas untuk workload lain yang juga butuh
 # ingress IP-based di port 80 ini.
+# UDMC-15: rule /_next agar asset Next.js (diminta browser TANPA prefix)
+# langsung ke SSR. HTML tetap via rewrites() existing di next.config.ts.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -32,6 +34,13 @@ spec:
                 port:
                   number: 3000
           - path: /atminudang
+            pathType: Prefix
+            backend:
+              service:
+                name: ssr
+                port:
+                  number: 3000
+          - path: /_next
             pathType: Prefix
             backend:
               service:
