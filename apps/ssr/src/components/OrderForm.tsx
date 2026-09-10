@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { checkPromo, submitPesanan } from "@/app/actions/submitPesanan";
 import {
   checkPromoEligibility,
@@ -10,6 +10,7 @@ import {
   isBeratMinMet,
   parseBeratVal,
   REKENING,
+  rekeningInfo,
   roundHalf,
   roundQuarter,
   type HargaConfig,
@@ -20,6 +21,7 @@ import {
   buildWaUrl,
   formatTanggalKirim,
   normalizePenerima,
+  WA_NUMBER,
 } from "@/lib/wa-message";
 
 export interface OrderFormKastamerAwal {
@@ -120,6 +122,23 @@ export default function OrderForm({
   const [errors, setErrors] = useState<{ berat?: string; nama?: string; alamat?: string; bayar?: string }>({});
   const [submitMsg, setSubmitMsg] = useState("");
   const [submitBusy, setSubmitBusy] = useState(false);
+  // Reminder banner (reference/uua/index.html:1026-1036,2911-2944):
+  // muncul jika localStorage udang_reminder sudah jatuh tempo.
+  const [reminderShow, setReminderShow] = useState(false);
+  const [reminderNama, setReminderNama] = useState("");
+  // Progress nav 4 step — state sederhana, diupdate IntersectionObserver
+  // (reference/uua/index.html:1044-1078,1715-1731).
+  const [stepAktif, setStepAktif] = useState(1);
+  // Modal pengingat WA (reference/uua/index.html:1471-1485,2827-2909):
+  // input tanggal + simpan ke localStorage + buka wa.me format "Pesan Nanti".
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderTgl, setReminderTgl] = useState("");
+  const [reminderHint, setReminderHint] = useState("");
+  const [reminderSaved, setReminderSaved] = useState(false);
+  // FAQ drawer (reference/uua/index.html:3099-3117,3150-3170).
+  const [faqOpen, setFaqOpen] = useState(false);
+  const faqRef = useRef<HTMLDivElement | null>(null);
+  const dreamlebsRef = useRef<HTMLSpanElement | null>(null);
 
   // Admin pre-fill: saat initialKastamer berubah (kastamer dipilih / Isi
   // baru), sinkronkan field identitas + alamat. Mode publik tidak pernah
@@ -131,6 +150,209 @@ export default function OrderForm({
     setAlamat(initialKastamer.alamat);
     setMapsLink(initialKastamer.mapsLink);
   }, [initialKastamer]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("udang_reminder");
+      if (!raw) return;
+      const data = JSON.parse(raw) as { nama?: string; reminderDatetime?: string; reminderDate?: string };
+      const remind = new Date(data.reminderDatetime || data.reminderDate || "");
+      if (!isNaN(remind.getTime()) && new Date() >= remind) {
+        setReminderNama(data.nama || "");
+        setReminderShow(true);
+      }
+    } catch {
+      // abaikan reminder korup
+    }
+  }, []);
+
+  // Highlight step yang sedang terlihat saat user scroll.
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const sections = [1, 2, 3, 4].map((n) => document.getElementById(`section-${n}`));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const n = parseInt(entry.target.id.replace("section-", ""), 10);
+            if (n >= 1 && n <= 4) setStepAktif(n);
+          }
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px", threshold: 0 },
+    );
+    sections.forEach((s) => {
+      if (s) observer.observe(s);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  function scrollToStep(n: number) {
+    document.getElementById(`section-${n}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Default tanggal pengingat = besok (reference reminderInitDatetime,
+  // index.html:2715-2745). Hint "Diingatkan besok / dalam N hari".
+  useEffect(() => {
+    if (!reminderOpen) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const now = new Date();
+    const max = new Date(now);
+    max.setMonth(max.getMonth() + 1);
+    const toLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    let def = new Date(now);
+    def.setDate(def.getDate() + 1);
+    if (def > max) def = max;
+    setReminderTgl((prev) => prev || toLocal(def));
+    setReminderSaved(false);
+  }, [reminderOpen]);
+
+  useEffect(() => {
+    if (!reminderTgl) {
+      setReminderHint("");
+      return;
+    }
+    const sel = new Date(reminderTgl + "T00:00:00");
+    const diff = sel.getTime() - Date.now();
+    if (isNaN(sel.getTime()) || diff <= 0) {
+      setReminderHint("Pilih tanggal yang akan datang.");
+      return;
+    }
+    const days = Math.floor(diff / 86400000);
+    setReminderHint(days <= 1 ? "Diingatkan besok." : `Diingatkan dalam ${days} hari.`);
+  }, [reminderTgl]);
+
+  // Tutup FAQ jika klik di luar drawer & tombol pemicu
+  // (reference/uua/index.html:3161-3170).
+  useEffect(() => {
+    if (!faqOpen) return;
+    function onDocClick(e: MouseEvent) {
+      const t = e.target as Node | null;
+      if (
+        t &&
+        faqRef.current && !faqRef.current.contains(t) &&
+        dreamlebsRef.current && !dreamlebsRef.current.contains(t)
+      ) {
+        setFaqOpen(false);
+      }
+    }
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [faqOpen]);
+
+  function reminderOpenWA() {
+    const msg = reminderNama
+      ? `Halo, saya ${reminderNama} mau pesan udang segar lagi 🦐`
+      : "Halo, saya mau pesan udang segar lagi 🦐";
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+    reminderDismiss();
+  }
+
+  function reminderDismiss() {
+    try {
+      localStorage.removeItem("udang_reminder");
+    } catch {
+      // abaikan
+    }
+    setReminderShow(false);
+  }
+
+  // saveReminder verbatim (reference/uua/index.html:2845-2909): validasi
+  // tanggal future, bangun pesan "Pesan Nanti", simpan localStorage,
+  // buka wa.me. Harga/promo diambil dari calc agar konsisten dengan nota.
+  function saveReminder() {
+    if (!reminderTgl) return;
+    const target = new Date(reminderTgl + "T00:00:00");
+    if (isNaN(target.getTime()) || target <= new Date()) {
+      setReminderHint("Pilih tanggal yang akan datang.");
+      return;
+    }
+    const tgl = formatTanggalKirim(reminderTgl);
+    const lines: (string | null)[] = [
+      "*Pesan Nanti – Udang Segar*",
+      "",
+      nama.trim() ? "Nama       : " + nama.trim() : null,
+      alamat.trim() ? "Alamat     : " + alamat.trim() : null,
+      mapsLink.trim() ? "Pin Lokasi : " + mapsLink.trim() : null,
+      "",
+      berat.kgUtuh > 0 ? "Udang utuh : " + berat.kgUtuh + " kg — " + fmt(calc.hargaUtuh) : null,
+      berat.kgKupas > 0
+        ? "Udang kupas: " + berat.kgKupas + " kg (" + jenisKupas + ") — " + fmt(calc.hargaKupas)
+        : null,
+      berat.kgCumi > 0 ? "Cumi       : " + berat.kgCumi + " kg — " + fmt(calc.hargaCumi) : null,
+      berat.kgKembung > 0
+        ? "Ikan kembung: " + berat.kgKembung + " kg" + (bersihKembung ? " (dibersihkan)" : "") + " — " + fmt(calc.hargaKembung)
+        : null,
+      berat.kgTeriNasi > 0 ? "Teri Nasi  : " + berat.kgTeriNasi + " kg — " + fmt(calc.hargaTeriNasi) : null,
+      catatan.trim() ? "Catatan    : " + catatan.trim() : null,
+      "",
+      calc.ongkirFinal === 0 ? "Ongkir     : GRATIS ✅" : "Ongkir     : +" + fmt(calc.ongkir),
+      calc.promoAktif ? "Promo (" + calc.promoAktif.kode + "): -" + fmt(calc.diskon || calc.ongkir) : null,
+      "*Total     : " + fmt(calc.total) + "*",
+      "",
+      bayar ? "Pembayaran : " + bayar : null,
+      rekeningInfo(bayar) ? "Rekening   : " + rekeningInfo(bayar) : null,
+      "",
+      "📅 Tanggal pesan: " + tgl,
+    ];
+    try {
+      localStorage.setItem(
+        "udang_reminder",
+        JSON.stringify({ nama: nama.trim(), reminderDatetime: reminderTgl, savedAt: new Date().toISOString() }),
+      );
+    } catch {
+      // abaikan — wa tetap dibuka
+    }
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(lines.filter((l) => l !== null).join("\n"))}`, "_blank");
+    setReminderSaved(true);
+  }
+
+  // simpanUntukNanti verbatim (reference/uua/index.html:2776-2825):
+  // bangun pesan "Simpan untuk Nanti" dari state form + calc, buka wa.me.
+  // Dipakai tombol "Chat Admin" (reference line 3132).
+  function chatAdmin() {
+    const lines: (string | null)[] = [
+      "*Simpan untuk Nanti – Udang Segar* 🦐",
+      "",
+      nama.trim() ? "Nama       : " + nama.trim() : null,
+      alamat.trim() ? "Alamat     : " + alamat.trim() : null,
+      mapsLink.trim() ? "Pin Lokasi : " + mapsLink.trim() : null,
+      "",
+      berat.kgUtuh > 0 ? "Udang utuh : " + berat.kgUtuh + " kg — " + fmt(calc.hargaUtuh) : null,
+      berat.kgKupas > 0
+        ? "Udang kupas: " + berat.kgKupas + " kg (" + jenisKupas + ") — " + fmt(calc.hargaKupas)
+        : null,
+      berat.kgCumi > 0 ? "Cumi       : " + berat.kgCumi + " kg — " + fmt(calc.hargaCumi) : null,
+      berat.kgKembung > 0
+        ? "Ikan kembung: " + berat.kgKembung + " kg" + (bersihKembung ? " (dibersihkan)" : "") + " — " + fmt(calc.hargaKembung)
+        : null,
+      berat.kgTeriNasi > 0 ? "Teri Nasi  : " + berat.kgTeriNasi + " kg — " + fmt(calc.hargaTeriNasi) : null,
+      catatan.trim() ? "Catatan    : " + catatan.trim() : null,
+      "",
+      calc.ongkirFinal === 0 ? "Ongkir     : GRATIS ✅" : "Ongkir     : +" + fmt(calc.ongkir),
+      calc.promoAktif ? "Promo (" + calc.promoAktif.kode + "): -" + fmt(calc.diskon || calc.ongkir) : null,
+      "*Total     : " + fmt(calc.total) + "*",
+      "",
+      bayar ? "Pembayaran : " + bayar : null,
+      rekeningInfo(bayar) ? "Rekening   : " + rekeningInfo(bayar) : null,
+      "",
+      "_Saya tertarik tapi belum bisa pesan sekarang. Boleh diingatkan nanti?_",
+    ];
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(lines.filter((l) => l !== null).join("\n"))}`, "_blank");
+  }
+
+  function toggleFaqSeo(e: ReactMouseEvent) {
+    e.stopPropagation();
+    setFaqOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        requestAnimationFrame(() => {
+          faqRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        });
+      }
+      return next;
+    });
+  }
 
   const berat = useMemo(
     () => ({
@@ -342,7 +564,53 @@ export default function OrderForm({
 
   const showBeratError = Boolean(errors.berat);
 
+  const progSteps = [
+    { n: 1, label: "Pesanan", title: "Pesanan" },
+    { n: 2, label: "Nama", title: "Nama & WhatsApp" },
+    { n: 3, label: "Alamat", title: "Alamat" },
+    { n: 4, label: "Bayar", title: "Pembayaran" },
+  ];
+
   return (
+    <Fragment>
+    {reminderShow && (
+      <div className="reminder-banner show" id="reminderBanner">
+        <div className="reminder-banner-title">🦐 Waktunya pesan udang lagi!</div>
+        <div className="reminder-banner-body" id="reminderBannerBody">
+          {reminderNama
+            ? `Halo ${reminderNama}! Sudah waktunya pesan udang segar lagi. Yuk langsung pesan sekarang!`
+            : "Kamu punya pengingat untuk memesan. Yuk langsung pesan sekarang!"}
+        </div>
+        <div className="reminder-banner-row">
+          <button type="button" className="btn-reminder-wa" onClick={reminderOpenWA}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" /></svg>
+            Pesan Sekarang
+          </button>
+          <button type="button" className="btn-reminder-dismiss" onClick={reminderDismiss}>Nanti dulu</button>
+        </div>
+      </div>
+    )}
+    <div className="progress-nav-wrap">
+      <div className="progress-nav">
+        {progSteps.map((s, i) => (
+          <Fragment key={s.n}>
+            {i > 0 && <div className={`prog-line${stepAktif > s.n - 1 ? " done" : ""}`} id={`pl-${s.n - 1}`}></div>}
+            <div
+              className={`prog-step${stepAktif === s.n ? " active" : ""}`}
+              id={`ps-${s.n}`}
+              onClick={() => scrollToStep(s.n)}
+              title={s.title}
+            >
+              <div className="prog-circle">
+                <span>{s.n}</span>
+                <svg width="13" height="13" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9.5 10.5,2.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+              <div className="prog-label">{s.label}</div>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
     <form onSubmit={handleSubmit} noValidate>
       <div className="form-body">
         <section className="step-section" id="section-1">
@@ -364,6 +632,7 @@ export default function OrderForm({
                 </div>
               </div>
               <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.udang.perKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.udang.setengahKg)}</div>
+              <div className="berat-hint" style={{ marginTop: 3 }}>1 thinwall ≈ 38–40 ekor · berat bersih 1 kg (tanpa thinwall)</div>
             </div>
 
             <div>
@@ -377,6 +646,7 @@ export default function OrderForm({
                 </div>
               </div>
               <div className="berat-hint" style={{ marginTop: 4 }}>{fmt(harga.udang.perKg + harga.udang.jasaKupasPerKg)}/kg &nbsp;·&nbsp; ½kg {fmt(harga.udang.setengahKg + harga.udang.kupasSetengahSurcharge)}</div>
+              <div className="berat-hint" style={{ marginTop: 3 }}>Udang ditimbang utuh (1 kg = 38–40 ekor), lalu dikupas — jumlah ekor tetap sama</div>
               <div className="toggle-group" style={{ marginTop: 10 }}>
                 <div className="toggle-option">
                   <input type="radio" id="kupasTailOn" name="jenisKupas" value="Peel Tail-On" checked={jenisKupas === "Peel Tail-On"} onChange={(e) => setJenisKupas(e.target.value)} />
@@ -540,6 +810,14 @@ export default function OrderForm({
             <label htmlFor="requestLain">Catatan / Request Lain</label>
             <textarea id="requestLain" placeholder="Contoh: tolong dikemas rapi, minta segar hari ini…" maxLength={300} value={catatan} onChange={(e) => setCatatan(e.target.value)} />
             <div className="char-count">{catatan.length}/300</div>
+            {mode === "publik" && (
+              <button type="button" className="btn-reminder-toggle" style={{ marginTop: 10 }} onClick={() => setReminderOpen(true)}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+                Ingatkan Saya Nanti
+              </button>
+            )}
           </div>
         </section>
 
@@ -609,21 +887,84 @@ export default function OrderForm({
 
         <div className="tanggal-kirim-bar" style={{ maxWidth: 560, margin: "0 auto", padding: "8px 12px", background: "white", borderTop: "1px solid #e5e7eb" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <label className="tk-label" htmlFor="tanggalKirim">Tanggal Pengiriman</label>
-            <input type="date" id="tanggalKirim" className="tk-input" min={tglKirimMin} value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
+            <label className="tk-label" htmlFor="tanggalKirim">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2.5" /><path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              Tanggal Pengiriman
+            </label>
+            <input type="date" id="tanggalKirim" name="tanggalKirim" className="tk-input" min={tglKirimMin} value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
           </div>
-          <p className="maps-hint" style={{ marginTop: 4 }}>Ganti jika mau dijadwalkan untuk tanggal lain. Kosong = Besok (H+1).</p>
+          <p className="maps-hint" id="tanggalKirimHint" style={{ marginTop: 4 }}>Ganti jika mau dijadwalkan untuk tanggal lain.</p>
         </div>
 
         {submitMsg && <div style={{ fontSize: "0.85rem", color: "#15803d" }}>{submitMsg}</div>}
 
         <div className="submit-bar">
+          {mode === "publik" && (
+          <button type="button" className="btn-reminder-toggle" id="btnReminderToggle" onClick={chatAdmin}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            Chat Admin
+          </button>
+          )}
           <button type="submit" disabled={submitBusy} className="btn-submit" style={{ flex: 1 }}>
-            {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : "Pesan via WhatsApp"}
+            {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : (
+              <Fragment>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                </svg>
+                Pesan
+              </Fragment>
+            )}
           </button>
         </div>
       </div>
     </form>
+    {mode === "publik" && (
+      <div className="bottom-dock">
+        <div id="faq-seo-drawer" ref={faqRef} className={`faq-seo-container${faqOpen ? " open" : ""}`}>
+          <div className="faq-seo-title">Pertanyaan Umum (FAQ) - Udang Segar Tambak Tegal</div>
+          <div className="faq-seo-item">
+            <div className="faq-seo-question">Q: Di mana saya bisa membeli udang segar tambak Tegal asli di Jabodetabek?</div>
+            <div className="faq-seo-answer">A: Kamu bisa memesannya langsung di sini! Kami menyediakan udang segar tambak Tegal asli yang dikirim langsung ke wilayah Jakarta, Depok, dan Bekasi (Jadebek).</div>
+          </div>
+          <div className="faq-seo-item">
+            <div className="faq-seo-question">Q: Apakah udang yang dikirim adalah udang beku (freezer)?</div>
+            <div className="faq-seo-answer">A: Tidak, kami berkomitmen menyajikan kualitas terbaik dengan sistem <strong>non-freezer (segar tanpa dibekukan / no freezer)</strong>, sehingga rasa manis alami dan tekstur udang tetap terjaga sempurna saat tiba di kulkas kamu.</div>
+          </div>
+          <div className="faq-seo-item">
+            <div className="faq-seo-question">Q: Bagaimana dengan biaya pengiriman ke wilayah Jakarta, Depok, dan Bekasi?</div>
+            <div className="faq-seo-answer">A: Kami memberikan penawaran istimewa berupa layanan <strong>gratis ongkir (free ongkir) langsung antar</strong> untuk seluruh area <strong>Sunter, Kelapa Gading, JGC, Sedayu, PGC, Harapan Indah, Pulogebang, Summarecon Bekasi</strong> tanpa biaya tambahan.</div>
+          </div>
+          <div className="faq-seo-item">
+            <div className="faq-seo-question">Q: Bagaimana cara memesan udang segar ini?</div>
+            <div className="faq-seo-answer">A: Sangat mudah! Kamu cukup mengisi form pemesanan udang segar di halaman web ini, lalu konfirmasi pesanan kamu akan dikirim langsung via WhatsApp.</div>
+          </div>
+        </div>
+        <div className="bottom-navbar">Manufactured by <span>adipresto</span> — <span className="dreamlebs-btn" ref={dreamlebsRef} onClick={toggleFaqSeo}>dreamlebs</span></div>
+      </div>
+    )}
+    {mode === "publik" && reminderOpen && (
+      <div className="reminder-modal-backdrop show" id="reminderModal" onClick={(e) => { if (e.target === e.currentTarget) setReminderOpen(false); }}>
+        <div className="reminder-modal-sheet" id="reminderModalSheet">
+          <div className="reminder-modal-header">
+            <div className="reminder-modal-title">Kami ingatkan kamu via WhatsApp</div>
+            <button type="button" className="reminder-modal-close" onClick={() => setReminderOpen(false)} aria-label="Tutup">✕</button>
+          </div>
+          <div className="reminder-modal-body">
+            <label className="reminder-dt-label" htmlFor="reminderDatetime">Tanggal pengingat</label>
+            <input type="date" id="reminderDatetime" className="reminder-dt-input" value={reminderTgl} onChange={(e) => setReminderTgl(e.target.value)} />
+            <div className="reminder-dt-hint" id="reminderDtHint" style={reminderHint === "Pilih tanggal yang akan datang." ? { color: "#ef4444" } : undefined}>{reminderHint}</div>
+            <button type="button" className="btn-save-reminder" onClick={saveReminder} disabled={reminderSaved} style={reminderSaved ? { opacity: 0.5 } : undefined}>Kirim Pengingat</button>
+            {reminderSaved && <div className="reminder-saved-msg show" id="reminderSavedMsg">✅ Pengingat tersimpan! Kami akan ingatkan kamu.</div>}
+          </div>
+        </div>
+      </div>
+    )}
+    </Fragment>
   );
 }
 
@@ -634,6 +975,35 @@ function PayOption({ opt, bayar, setBayar }: {
 }) {
   const id = `pay-${opt.logo}`;
   const rekening = REKENING[opt.value];
+  // copyAccount verbatim (reference/uua/index.html:1734-1759):
+  // clipboard + fallback textarea, feedback "Tersalin ✓" 1600ms.
+  const [copied, setCopied] = useState(false);
+  function copyAccount(num: string) {
+    const done = () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    };
+    const fallbackCopy = () => {
+      const ta = document.createElement("textarea");
+      ta.value = num;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        done();
+      } catch {
+        // abaikan
+      }
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(num).then(done).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  };
   return (
     <div className="pay-option">
       <input type="radio" id={id} name="bayar" value={opt.value} checked={bayar === opt.value} onChange={(e) => setBayar(e.target.value)} />
@@ -651,6 +1021,9 @@ function PayOption({ opt, bayar, setBayar }: {
             <div className="pay-account-label">{opt.rekeningLabel}</div>
             <div className="pay-account-num">{opt.rekeningNum}</div>
           </div>
+          <button type="button" className={`btn-copy-acct${copied ? " copied" : ""}`} onClick={() => copyAccount(opt.rekeningNum)}>
+            {copied ? "Tersalin ✓" : "Salin"}
+          </button>
         </div>
       )}
     </div>
