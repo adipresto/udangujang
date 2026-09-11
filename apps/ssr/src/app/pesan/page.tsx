@@ -45,14 +45,15 @@ export default async function PesanPage() {
   }
 
   return (
-    <main>
-      <header>
-        <div className="header-top">
-          <h1>Form Pesanan</h1>
-          <p>Isi data di bawah, kami akan segera konfirmasi via WhatsApp</p>
-        </div>
-      </header>
-      <OrderForm hargaAwal={hargaAwal} />
-    </main>
+    <>
+      {/* Google Fonts, loaded the same way as reference/uua/index.html
+          (lines 10-15) — uua.css's body font-family expects this. */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" />
+      <main>
+        <OrderForm hargaAwal={hargaAwal} />
+      </main>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { checkPromo, submitPesanan } from "@/app/actions/submitPesanan";
+import MapPinModal from "@/components/MapPinModal";
 import {
   checkPromoEligibility,
   computeOrder,
@@ -9,7 +10,6 @@ import {
   getAreaInfo,
   isBeratMinMet,
   parseBeratVal,
-  REKENING,
   rekeningInfo,
   roundHalf,
   roundQuarter,
@@ -139,6 +139,13 @@ export default function OrderForm({
   const [faqOpen, setFaqOpen] = useState(false);
   const faqRef = useRef<HTMLDivElement | null>(null);
   const dreamlebsRef = useRef<HTMLSpanElement | null>(null);
+  // Map pin modal (reference/uua/index.html:1487-1525,1793-2073) —
+  // MapPinModal.tsx does the Leaflet/geocode work, this just wires the
+  // result back into mapsLink/pinLat/pinLng + shows the .location-status
+  // line.
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [locStatus, setLocStatus] = useState<{ type: "loading" | "success" | "fail"; msg: string } | null>(null);
+  const lastAutoAddrRef = useRef("");
 
   // Admin pre-fill: saat initialKastamer berubah (kastamer dipilih / Isi
   // baru), sinkronkan field identitas + alamat. Mode publik tidak pernah
@@ -402,10 +409,19 @@ export default function OrderForm({
     produkCustom.length > 0 ||
     isBeratMinMet({ ...berat, kgUtuh: berat.kgUtuh + kgTongkolNum + kgNilaNum }, alamat, pin, harga);
 
-  const tglKirimMin = useMemo(() => {
+  // tglKirimMin/tglKirim default (besok, H+1 — reference lines 2750-2758)
+  // are computed client-only in an effect, not eagerly during render: doing
+  // it eagerly (e.g. a bare useMemo) evaluates `new Date()` during SSR too,
+  // and if the server's timezone differs from the browser's, "tomorrow"
+  // can resolve to a different calendar date — a real hydration mismatch
+  // on the <input min> attribute, not just a cosmetic one.
+  const [tglKirimMin, setTglKirimMin] = useState("");
+  useEffect(() => {
     const d = new Date(Date.now() + 86400000);
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const besok = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    setTglKirimMin(besok);
+    setTglKirim(besok);
   }, []);
 
   async function handleApplyPromo() {
@@ -459,15 +475,35 @@ export default function OrderForm({
     }
   }
 
-  function handlePin() {
-    const lat = parseFloat(pinLat);
-    const lng = parseFloat(pinLng);
-    if (!isFinite(lat) || !isFinite(lng)) {
-      setSubmitMsg("Isi koordinat pin (lat,lng) dulu, atau tempel link Google Maps.");
-      return;
-    }
+  // handleMapConfirm ports confirmMapPin (reference lines 2043-2073): sets
+  // the maps link, auto-fills Alamat Detail from the reverse-geocoded
+  // address only if it's empty or still holds the previous auto-fill (so
+  // manually typed text is never clobbered), and shows the same
+  // "pinned" / "area free ongkir" status line.
+  function handleMapConfirm(lat: number, lng: number, pinAddress: string) {
+    setPinLat(String(lat));
+    setPinLng(String(lng));
     setMapsLink(`https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`);
-    setSubmitMsg("");
+
+    let filledAddr = false;
+    let nextAlamat = alamat;
+    if (pinAddress) {
+      const cur = alamat.trim();
+      if (cur === "" || cur === lastAutoAddrRef.current) {
+        nextAlamat = pinAddress;
+        lastAutoAddrRef.current = pinAddress;
+        setAlamat(pinAddress);
+        filledAddr = true;
+      }
+    }
+
+    const ongkirNow = getAreaInfo(nextAlamat, { lat, lng }, harga).ongkir;
+    let statusMsg = filledAddr
+      ? "📍 Alamat terisi otomatis dari titik peta"
+      : `📍 Lokasi dipin: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    if (ongkirNow === 0) statusMsg += " — ✅ Area FREE ONGKIR!";
+    setLocStatus({ type: "success", msg: statusMsg });
+    setMapModalOpen(false);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -570,10 +606,15 @@ export default function OrderForm({
     { n: 3, label: "Alamat", title: "Alamat" },
     { n: 4, label: "Bayar", title: "Pembayaran" },
   ];
+  // stepDone ports isStep1Done..isStep4Done (reference lines 1640-1654):
+  // "done" means that step's own data is filled in, independent of scroll
+  // position — kept separate from stepAktif ("currently visible"), matching
+  // renderProgress's done-takes-precedence-over-active rule (line 1699).
+  const stepDone = [beratOk, nama.trim().length > 0, alamat.trim().length > 0, bayar.length > 0];
 
   return (
     <Fragment>
-    {reminderShow && (
+    {mode === "publik" && reminderShow && (
       <div className="reminder-banner show" id="reminderBanner">
         <div className="reminder-banner-title">🦐 Waktunya pesan udang lagi!</div>
         <div className="reminder-banner-body" id="reminderBannerBody">
@@ -590,13 +631,21 @@ export default function OrderForm({
         </div>
       </div>
     )}
+    {mode === "publik" && (
+    <header>
+      <div className="header-top">
+        <h1>Form Pesanan</h1>
+        <p>Isi data di bawah, kami akan segera konfirmasi via WhatsApp</p>
+      </div>
     <div className="progress-nav-wrap">
       <div className="progress-nav">
-        {progSteps.map((s, i) => (
+        {progSteps.map((s, i) => {
+          const done = stepDone[i];
+          return (
           <Fragment key={s.n}>
-            {i > 0 && <div className={`prog-line${stepAktif > s.n - 1 ? " done" : ""}`} id={`pl-${s.n - 1}`}></div>}
+            {i > 0 && <div className={`prog-line${stepDone[i - 1] ? " done" : ""}`} id={`pl-${s.n - 1}`}></div>}
             <div
-              className={`prog-step${stepAktif === s.n ? " active" : ""}`}
+              className={`prog-step${done ? " done" : stepAktif === s.n ? " active" : ""}`}
               id={`ps-${s.n}`}
               onClick={() => scrollToStep(s.n)}
               title={s.title}
@@ -608,10 +657,13 @@ export default function OrderForm({
               <div className="prog-label">{s.label}</div>
             </div>
           </Fragment>
-        ))}
+          );
+        })}
       </div>
     </div>
-    <form onSubmit={handleSubmit} noValidate>
+    </header>
+    )}
+    <form id="orderForm" onSubmit={handleSubmit} noValidate>
       <div className="form-body">
         <section className="step-section" id="section-1">
           <div className="step-heading">
@@ -660,7 +712,7 @@ export default function OrderForm({
             </div>
 
             <p className="berat-hint" style={{ marginTop: 10 }}>
-              {areaInfo.area === "bogor_tangerang" ? "Area Bogor / Tangerang — min. total 2 kg." : "Min. total 0,5 kg. Boleh isi salah satu atau semuanya."}
+              {areaInfo.area === "bogor_tangerang" ? "Area Bogor / Tangerang — min. total 2 kg." : "Min. total 0,5 kg. Boleh isi salah satu atau keduanya."}
             </p>
             {showBeratError && <div className="field-error" style={{ display: "block" }}>{errors.berat}</div>}
           </div>
@@ -854,16 +906,21 @@ export default function OrderForm({
             <div className="maps-wrap">
               <div className="maps-row">
                 <input type="text" placeholder="Link Google Maps muncul di sini…" inputMode="text" readOnly value={mapsLink} aria-label="Link Google Maps pin lokasi" />
-                <div style={{ display: "flex", gap: 8, flex: 1 }}>
-                  <input type="text" inputMode="decimal" placeholder="lat, cth -6.150" value={pinLat} onChange={(e) => setPinLat(e.target.value)} aria-label="Latitude pin lokasi" />
-                  <input type="text" inputMode="decimal" placeholder="lng, cth 106.900" value={pinLng} onChange={(e) => setPinLng(e.target.value)} aria-label="Longitude pin lokasi" />
-                  <button type="button" className="btn-maps" onClick={handlePin}>📍 Pin Lokasi</button>
-                </div>
+                <button type="button" className="btn-maps" onClick={() => setMapModalOpen(true)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                    <circle cx="12" cy="9" r="2.5" />
+                  </svg>
+                  Pin Lokasi
+                </button>
               </div>
-              <p className="maps-hint">Cukup pin titik — alamat akan terisi otomatis. Membantu kurir menemukan lokasimu lebih akurat.</p>
+              {locStatus && <div className={`location-status ${locStatus.type}`} style={{ display: "block" }}>{locStatus.msg}</div>}
+              <p className="maps-hint">Cukup pin titik di peta — alamat akan terisi otomatis. Membantu kurir menemukan lokasimu lebih akurat.</p>
             </div>
           </div>
         </section>
+
+        {mapModalOpen && <MapPinModal onClose={() => setMapModalOpen(false)} onConfirm={handleMapConfirm} />}
 
         <section className="step-section" id="section-4">
           <div className="step-heading">
@@ -884,45 +941,21 @@ export default function OrderForm({
             {errors.bayar && <div className="field-error" style={{ display: "block" }}>{errors.bayar}</div>}
           </div>
         </section>
-
-        <div className="tanggal-kirim-bar" style={{ maxWidth: 560, margin: "0 auto", padding: "8px 12px", background: "white", borderTop: "1px solid #e5e7eb" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <label className="tk-label" htmlFor="tanggalKirim">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2.5" /><path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              Tanggal Pengiriman
-            </label>
-            <input type="date" id="tanggalKirim" name="tanggalKirim" className="tk-input" min={tglKirimMin} value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
-          </div>
-          <p className="maps-hint" id="tanggalKirimHint" style={{ marginTop: 4 }}>Ganti jika mau dijadwalkan untuk tanggal lain.</p>
-        </div>
-
-        {submitMsg && <div style={{ fontSize: "0.85rem", color: "#15803d" }}>{submitMsg}</div>}
-
-        <div className="submit-bar">
-          {mode === "publik" && (
-          <button type="button" className="btn-reminder-toggle" id="btnReminderToggle" onClick={chatAdmin}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            Chat Admin
-          </button>
-          )}
-          <button type="submit" disabled={submitBusy} className="btn-submit" style={{ flex: 1 }}>
-            {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : (
-              <Fragment>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-                </svg>
-                Pesan
-              </Fragment>
-            )}
-          </button>
-        </div>
       </div>
     </form>
+    {mode !== "publik" && (
+      <div className="form-body" style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
+        <TanggalDanSubmit
+          mode={mode}
+          tglKirim={tglKirim}
+          setTglKirim={setTglKirim}
+          tglKirimMin={tglKirimMin}
+          submitMsg={submitMsg}
+          submitBusy={submitBusy}
+          onChatAdmin={chatAdmin}
+        />
+      </div>
+    )}
     {mode === "publik" && (
       <div className="bottom-dock">
         <div id="faq-seo-drawer" ref={faqRef} className={`faq-seo-container${faqOpen ? " open" : ""}`}>
@@ -944,6 +977,15 @@ export default function OrderForm({
             <div className="faq-seo-answer">A: Sangat mudah! Kamu cukup mengisi form pemesanan udang segar di halaman web ini, lalu konfirmasi pesanan kamu akan dikirim langsung via WhatsApp.</div>
           </div>
         </div>
+        <TanggalDanSubmit
+          mode={mode}
+          tglKirim={tglKirim}
+          setTglKirim={setTglKirim}
+          tglKirimMin={tglKirimMin}
+          submitMsg={submitMsg}
+          submitBusy={submitBusy}
+          onChatAdmin={chatAdmin}
+        />
         <div className="bottom-navbar">Manufactured by <span>adipresto</span> — <span className="dreamlebs-btn" ref={dreamlebsRef} onClick={toggleFaqSeo}>dreamlebs</span></div>
       </div>
     )}
@@ -968,13 +1010,76 @@ export default function OrderForm({
   );
 }
 
+// TanggalDanSubmit ports the tanggal-kirim-bar + submit-bar block
+// (reference lines 3119-3145) — lives OUTSIDE <form id="orderForm"> (mirrors
+// the reference: the submit button there is `form="orderForm"`) so the
+// public build can render it inside the fixed .bottom-dock while admin mode
+// keeps it inline in the page flow.
+function TanggalDanSubmit({
+  mode,
+  tglKirim,
+  setTglKirim,
+  tglKirimMin,
+  submitMsg,
+  submitBusy,
+  onChatAdmin,
+}: {
+  mode: "publik" | "admin";
+  tglKirim: string;
+  setTglKirim: (v: string) => void;
+  tglKirimMin: string;
+  submitMsg: string;
+  submitBusy: boolean;
+  onChatAdmin: () => void;
+}) {
+  return (
+    <>
+      <div className="tanggal-kirim-bar" style={{ maxWidth: 560, margin: "0 auto", padding: "8px 12px", background: "white", borderTop: "1px solid #e5e7eb" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <label className="tk-label" htmlFor="tanggalKirim">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2.5" /><path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            Tanggal Pengiriman
+          </label>
+          <input type="date" id="tanggalKirim" form="orderForm" name="tanggalKirim" className="tk-input" min={tglKirimMin} value={tglKirim} onChange={(e) => setTglKirim(e.target.value)} />
+        </div>
+        <p className="maps-hint" id="tanggalKirimHint" style={{ marginTop: 4 }}>Ganti jika mau dijadwalkan untuk tanggal lain.</p>
+      </div>
+
+      {submitMsg && <div style={{ fontSize: "0.85rem", color: "#15803d", padding: mode === "publik" ? "0 16px" : undefined }}>{submitMsg}</div>}
+
+      <div className="submit-bar">
+        {mode === "publik" && (
+          <button type="button" form="orderForm" className="btn-reminder-toggle" id="btnReminderToggle" onClick={onChatAdmin}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+            Chat Admin
+          </button>
+        )}
+        <button type="submit" form="orderForm" disabled={submitBusy} className="btn-submit" style={{ flex: 1 }}>
+          {mode === "admin" ? (submitBusy ? "Menyimpan..." : "Simpan Pesanan") : (
+            <Fragment>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.556 4.121 1.528 5.855L.057 23.854a.5.5 0 00.608.608l6.074-1.458A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.942 9.942 0 01-5.031-1.362l-.36-.214-3.733.897.915-3.642-.236-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+              </svg>
+              Pesan
+            </Fragment>
+          )}
+        </button>
+      </div>
+    </>
+  );
+}
+
 function PayOption({ opt, bayar, setBayar }: {
   opt: { value: string; label: string; desc: string; logo: string; logoText: string; rekeningLabel: string; rekeningNum: string };
   bayar: string;
   setBayar: (v: string) => void;
 }) {
   const id = `pay-${opt.logo}`;
-  const rekening = REKENING[opt.value];
   // copyAccount verbatim (reference/uua/index.html:1734-1759):
   // clipboard + fallback textarea, feedback "Tersalin ✓" 1600ms.
   const [copied, setCopied] = useState(false);
@@ -1011,7 +1116,7 @@ function PayOption({ opt, bayar, setBayar }: {
         <div className={`pay-logo ${opt.logo}`}>{opt.logoText}</div>
         <div className="pay-info">
           <div className="pay-name">{opt.label}</div>
-          <div className="pay-desc">{opt.desc}{rekening ? ` · ${rekening}` : ""}</div>
+          <div className="pay-desc">{opt.desc}</div>
         </div>
         <div className="pay-check"></div>
       </label>
