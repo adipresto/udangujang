@@ -139,6 +139,7 @@ export default function OrderForm({
   const [faqOpen, setFaqOpen] = useState(false);
   const faqRef = useRef<HTMLDivElement | null>(null);
   const dreamlebsRef = useRef<HTMLSpanElement | null>(null);
+  const dockRef = useRef<HTMLDivElement | null>(null);
   // Map pin modal (reference/uua/index.html:1487-1525,1793-2073) —
   // MapPinModal.tsx does the Leaflet/geocode work, this just wires the
   // result back into mapsLink/pinLat/pinLng + shows the .location-status
@@ -246,6 +247,28 @@ export default function OrderForm({
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
   }, [faqOpen]);
+
+  // .bottom-dock is position:fixed, so it can cover the tail of the
+  // scrollable form content — uua.css's body padding-bottom (120px) was
+  // sized for the reference's original, shorter dock and doesn't account
+  // for this merge's taller one (FAQ drawer + tanggal-kirim-bar +
+  // submit-bar + footer), let alone the FAQ drawer expanding it further
+  // when opened. Keep body padding in sync with the dock's real height
+  // instead of guessing a static number.
+  useEffect(() => {
+    if (mode !== "publik" || !dockRef.current) return;
+    const el = dockRef.current;
+    const sync = () => {
+      document.body.style.paddingBottom = `${el.getBoundingClientRect().height + 16}px`;
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.body.style.paddingBottom = "";
+    };
+  }, [mode]);
 
   function reminderOpenWA() {
     const msg = reminderNama
@@ -957,7 +980,7 @@ export default function OrderForm({
       </div>
     )}
     {mode === "publik" && (
-      <div className="bottom-dock">
+      <div className="bottom-dock" ref={dockRef}>
         <div id="faq-seo-drawer" ref={faqRef} className={`faq-seo-container${faqOpen ? " open" : ""}`}>
           <div className="faq-seo-title">Pertanyaan Umum (FAQ) - Udang Segar Tambak Tegal</div>
           <div className="faq-seo-item">
